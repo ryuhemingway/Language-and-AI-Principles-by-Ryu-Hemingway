@@ -906,7 +906,11 @@ def load_config() -> dict:
     if CONFIG_PATH.exists():
         with open(CONFIG_PATH) as f:
             return json.load(f)
-    print(f"  No config.json found at {CONFIG_PATH}")
+    example_path = BASE / "config.example.json"
+    if example_path.exists():
+        with open(example_path) as f:
+            return json.load(f)
+    ui_box([f"No config.json found at {CONFIG_PATH}"], title="Configuration", color=ANSI.amber)
     sys.exit(1)
 
 
