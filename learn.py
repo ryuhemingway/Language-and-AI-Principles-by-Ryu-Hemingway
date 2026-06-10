@@ -64,6 +64,31 @@ class ANSI:
     magenta = "\033[35m" if ANSI_ENABLED else ""
 
 
+# Color palettes. "dark" uses the bright defaults; "light" swaps to darker
+# foregrounds that stay legible on a light background and drops dim (which is
+# nearly invisible on white) to a readable gray.
+THEMES = {
+    "dark": {"cyan": "\033[36m", "green": "\033[32m", "amber": "\033[33m",
+             "red": "\033[31m", "magenta": "\033[35m", "dim": "\033[2m"},
+    "light": {"cyan": "\033[34m", "green": "\033[38;5;28m", "amber": "\033[38;5;130m",
+              "red": "\033[31m", "magenta": "\033[35m", "dim": "\033[38;5;240m"},
+}
+
+CURRENT_THEME = "dark"
+
+
+def apply_theme(theme: str) -> None:
+    """Switch the active ANSI palette. No-op for colors when output is not a TTY."""
+    global CURRENT_THEME
+    if theme not in THEMES:
+        theme = "dark"
+    CURRENT_THEME = theme
+    if not ANSI_ENABLED:
+        return
+    for name, code in THEMES[theme].items():
+        setattr(ANSI, name, code)
+
+
 def _term_width() -> int:
     return max(72, min(110, shutil.get_terminal_size((96, 24)).columns))
 
@@ -77,11 +102,13 @@ def _display_len(text: str) -> int:
 
 
 def _center_text(text: str, width: int | None = None) -> str:
-    width = width or _term_width()
+    # Box/wrap widths stay capped (_term_width), but centering pads against the
+    # live terminal width so panels stay centered when the window is widened.
+    cols = width if width is not None else shutil.get_terminal_size((96, 24)).columns
     visible = _display_len(text)
-    if visible >= width:
+    if visible >= cols:
         return text
-    return " " * ((width - visible) // 2) + text
+    return " " * ((cols - visible) // 2) + text
 
 
 def ui_line(text: str = "", color: str = "", bold: bool = False) -> None:
@@ -95,6 +122,16 @@ def ui_blank() -> None:
 
 def ui_rule(char: str = "─", color: str = ANSI.dim) -> None:
     ui_line(char * min(84, _term_width() - 8), color=color)
+
+
+def _box_content_left() -> int:
+    """Column where text inside an ANSI box begins (centered box + '│ ' border).
+
+    Used to align the multi-line code editor with the boxes above it.
+    """
+    width = min(84, _term_width() - 8)
+    cols = shutil.get_terminal_size((96, 24)).columns
+    return max(0, (cols - width) // 2 + 2)
 
 
 def ui_box(lines: list[str], title: str = "", color: str = ANSI.cyan) -> None:
@@ -127,19 +164,49 @@ def ui_menu(title: str, options: list[str]) -> None:
     ui_box([f"[{i}] {option}" for i, option in enumerate(options, 1)], title=title, color=ANSI.magenta)
 
 
+def _read_line(label: str = "> ") -> str:
+    """Read one line of input, centered. Treats EOF (Ctrl-D) as a clean quit."""
+    try:
+        return input(_center_text(f"{ANSI.green}{label}{ANSI.reset}"))
+    except EOFError:
+        print()
+        raise SystemExit(0)
+
+
 def ui_prompt() -> str:
-    return input(_center_text(f"{ANSI.green}> {ANSI.reset}")).strip().lower()
+    return _read_line().strip().lower()
 
 
 def print_learn_banner() -> None:
     ui_blank()
     art = [
-        "██████╗ ██████╗  ██████╗  ██████╗ ██████╗  █████╗ ███╗   ███╗",
-        "██╔══██╗██╔══██╗██╔═══██╗██╔════╝ ██╔══██╗██╔══██╗████╗ ████║",
-        "██████╔╝██████╔╝██║   ██║██║  ███╗██████╔╝███████║██╔████╔██║",
-        "██╔═══╝ ██╔══██╗██║   ██║██║   ██║██╔══██╗██╔══██║██║╚██╔╝██║",
-        "██║     ██║  ██║╚██████╔╝╚██████╔╝██║  ██║██║  ██║██║ ╚═╝ ██║",
-        "╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝",
+        " █████╗ ██╗    ██╗███╗   ███╗██╗     ",
+        "██╔══██╗██║   ██╔╝████╗ ████║██║     ",
+        "███████║██║  ██╔╝ ██╔████╔██║██║     ",
+        "██╔══██║██║ ██╔╝  ██║╚██╔╝██║██║     ",
+        "██║  ██║██║██╔╝   ██║ ╚═╝ ██║███████╗",
+        "╚═╝  ╚═╝╚═╝╚═╝    ╚═╝     ╚═╝╚══════╝",
+        "",
+        "██████╗ ██████╗  ██████╗  ██████╗ ██████╗  █████╗ ███╗   ███╗███╗   ███╗██╗███╗   ██╗ ██████╗ ",
+        "██╔══██╗██╔══██╗██╔═══██╗██╔════╝ ██╔══██╗██╔══██╗████╗ ████║████╗ ████║██║████╗  ██║██╔════╝ ",
+        "██████╔╝██████╔╝██║   ██║██║  ███╗██████╔╝███████║██╔████╔██║██╔████╔██║██║██╔██╗ ██║██║  ███╗",
+        "██╔═══╝ ██╔══██╗██║   ██║██║   ██║██╔══██╗██╔══██║██║╚██╔╝██║██║╚██╔╝██║██║██║╚██╗██║██║   ██║",
+        "██║     ██║  ██║╚██████╔╝╚██████╔╝██║  ██║██║  ██║██║ ╚═╝ ██║██║ ╚═╝ ██║██║██║ ╚████║╚██████╔╝",
+        "╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ",
+        "",
+        " █████╗ ███╗   ██╗██████╗ ",
+        "██╔══██╗████╗  ██║██╔══██╗",
+        "███████║██╔██╗ ██║██║  ██║",
+        "██╔══██║██║╚██╗██║██║  ██║",
+        "██║  ██║██║ ╚████║██████╔╝",
+        "╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ",
+        "",
+        "███████╗██╗   ██╗███╗   ██╗██████╗  █████╗ ███╗   ███╗███████╗███╗   ██╗████████╗ █████╗ ██╗     ███████╗",
+        "██╔════╝██║   ██║████╗  ██║██╔══██╗██╔══██╗████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██╔══██╗██║     ██╔════╝",
+        "█████╗  ██║   ██║██╔██╗ ██║██║  ██║███████║██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ███████║██║     ███████╗",
+        "██╔══╝  ██║   ██║██║╚██╗██║██║  ██║██╔══██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║   ██║   ██╔══██║██║     ╚════██║",
+        "██║     ╚██████╔╝██║ ╚████║██████╔╝██║  ██║██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║  ██║███████╗███████║",
+        "╚═╝      ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝",
     ]
     for line in art:
         ui_line(line, color=ANSI.cyan, bold=True)
@@ -172,18 +239,18 @@ LEARN_TRACKS = {
 
 
 AI_MODULES = {
-    "llm_fundamentals": "LLM and model API fundamentals",
-    "prompting": "Prompt and context engineering",
-    "embeddings": "Embeddings and vector databases",
-    "rag": "RAG fundamentals",
-    "harnesses": "Harnesses and evaluation",
-    "agents": "Agentic workflows",
-    "locallm": "Local LLM fundamentals",
+    "llm_fundamentals": "LLM fundamentals",
+    "prompting": "Prompt engineering",
+    "embeddings": "Embeddings and vector search",
+    "rag": "Retrieval-augmented generation",
+    "harnesses": "Evaluation harnesses",
+    "agents": "Agentic coding and AI agents",
+    "locallm": "Local LLMs",
     "ml_basics": "Machine learning fundamentals",
     "data_engineering": "AI data engineering",
-    "transformers": "Transformers and deep learning basics",
+    "transformers": "Neural nets, transformers, and LLMs",
     "mlops": "AI deployment and MLOps",
-    "safety": "AI safety, security, and privacy",
+    "safety": "AI safety, governance, and reliability",
 }
 
 
@@ -213,6 +280,145 @@ LESSON_TOPICS = [
 ]
 
 
+# Short, book-style teaching notes for each topic. These are the actual lesson
+# content (language-agnostic): enough to understand the idea and attempt the
+# practice. The language example below shows the matching syntax.
+LESSON_EXPLANATIONS = {
+    "variables": [
+        "A variable is a named box in memory that holds a value you can read and change later.",
+        "You assign with '=': the name goes on the left, the value on the right.",
+        "Pick clear names (score, user_name) so the code explains itself.",
+        "Printing a variable shows its current value, which is how you check your work.",
+    ],
+    "types": [
+        "Every value has a type: integers (3), decimals/floats (3.14), text/strings (\"hi\"), and booleans (true/false).",
+        "The type decides what operations are legal: adding numbers differs from joining text.",
+        "Converting (casting) turns one type into another, e.g. the text \"42\" into the number 42.",
+        "Mixing types carelessly is a common bug, so always know what type a value is.",
+    ],
+    "input": [
+        "Programs get useful when they react to data the user types in.",
+        "Input almost always arrives as text, even when the user types digits.",
+        "Before doing math on it, convert that text into a number (int or float).",
+        "Guard against unexpected input so the program does not crash.",
+    ],
+    "conditionals": [
+        "Conditionals let a program choose between paths based on a true/false test.",
+        "'if' runs a block only when its condition is true; 'else' covers the other case; else-if chains more checks.",
+        "Comparison operators (==, !=, <, >, <=, >=) produce the booleans you test.",
+        "Combine conditions with and / or / not to express richer rules.",
+    ],
+    "loops": [
+        "A loop repeats a block of code so you do not copy-paste the same lines.",
+        "Use a 'for' loop when you know how many times or are walking a collection; use 'while' to repeat until a condition turns false.",
+        "The loop variable changes each pass; tracing it by hand reveals how the loop behaves.",
+        "Make sure the loop can end, or it runs forever (an infinite loop).",
+    ],
+    "functions": [
+        "A function packages a piece of logic under a name so you can reuse it.",
+        "Parameters are the inputs you pass in; the return value is the result you get back.",
+        "Calling a function runs its body with the arguments you supply.",
+        "Functions keep code short, testable, and free of duplication.",
+    ],
+    "arrays": [
+        "An array (or list) stores many values in a single ordered container.",
+        "Each item has an index; most languages start at 0, so the first item is index 0.",
+        "You loop over the items to process them one by one.",
+        "Reading past the last valid index is a classic out-of-bounds error.",
+    ],
+    "strings": [
+        "A string is an ordered sequence of characters (letters, digits, symbols).",
+        "You can index single characters, slice ranges, measure length, and compare strings.",
+        "Strings are often immutable, so 'changing' one usually builds a new string.",
+        "Many problems (palindromes, counting) are just careful string traversal.",
+    ],
+    "hash_maps": [
+        "A hash map (dictionary) stores key -> value pairs for fast lookup by key.",
+        "Looking up, inserting, and updating by key are about constant time (O(1)) on average.",
+        "They shine when you would otherwise scan a list repeatedly, e.g. counting occurrences.",
+        "Keys are unique; assigning an existing key overwrites its value.",
+    ],
+    "stack": [
+        "A stack is a last-in, first-out (LIFO) collection: the most recent item comes off first.",
+        "The two core operations are push (add to the top) and pop (remove from the top).",
+        "Think of a stack of plates: you take the top one.",
+        "Stacks model undo history, function calls, and matching brackets/parentheses.",
+    ],
+    "two_pointers": [
+        "The two-pointer technique uses two indexes moving through data to avoid nested loops.",
+        "Common setups: one pointer at each end moving inward, or a slow/fast pair moving the same way.",
+        "It works best on sorted arrays or when pairing/comparing elements.",
+        "It often turns an O(n^2) scan into a single O(n) pass.",
+    ],
+    "sliding_window": [
+        "A sliding window tracks a contiguous range (subarray/substring) that grows and shrinks as you scan.",
+        "Expand the window by moving the right edge; shrink it by moving the left edge.",
+        "Keep a running total or count so you do not recompute the whole window each step.",
+        "Great for 'longest/shortest/best run that satisfies X' problems.",
+    ],
+    "binary_search": [
+        "Binary search finds a target by repeatedly halving a sorted search space.",
+        "Check the middle: if it matches you are done; otherwise discard the half that cannot contain it.",
+        "It needs sorted data, or any condition that is monotonic (false then true).",
+        "It runs in O(log n), far faster than scanning every element.",
+    ],
+    "classes": [
+        "A class is a blueprint that bundles related data (fields) with behavior (methods).",
+        "An object is one instance made from that class, with its own copy of the data.",
+        "Methods act on the object's own data (this / self).",
+        "Classes help model real things and keep related code together.",
+    ],
+    "linked_lists": [
+        "A linked list is a chain of nodes; each node holds a value and a reference to the next node.",
+        "Unlike an array there is no direct index, so you reach an item by following next pointers.",
+        "Inserting or removing is cheap once you are at the spot (just rewire pointers); finding the spot is O(n).",
+        "The list ends when a node's next is null/None.",
+    ],
+    "recursion": [
+        "Recursion solves a problem by having a function call itself on a smaller version of the problem.",
+        "Every recursion needs a base case that stops it, or it never ends (stack overflow).",
+        "Each call must move closer to the base case.",
+        "Many tree and divide-and-conquer problems are naturally recursive.",
+    ],
+    "trees": [
+        "A tree is a hierarchy of nodes starting from a single root; each node has children.",
+        "A binary tree limits each node to at most two children (left and right).",
+        "Visit nodes with traversals: depth-first (DFS: pre/in/post-order) or breadth-first (BFS, level by level).",
+        "Trees model file systems, decisions, and sorted data (binary search trees).",
+    ],
+    "graphs": [
+        "A graph is a set of nodes (vertices) joined by edges; connections can be one-way or two-way.",
+        "Common representations: an adjacency list (each node lists its neighbors) or an adjacency matrix.",
+        "Traverse with BFS (level by level, good for shortest unweighted paths) or DFS (go deep first).",
+        "Track visited nodes so you do not loop forever on cycles.",
+    ],
+    "dynamic_programming": [
+        "Dynamic programming solves a problem by combining answers to overlapping subproblems.",
+        "Define the state (what a subproblem means), the recurrence (how states combine), and the base cases.",
+        "Store (memoize) computed answers so each subproblem is solved only once.",
+        "It turns exponential brute force into polynomial time when subproblems repeat.",
+    ],
+    "heap": [
+        "A heap always gives quick access to the smallest (min-heap) or largest (max-heap) item.",
+        "Push and pop are O(log n); peeking at the top item is O(1).",
+        "Use it as a priority queue when you repeatedly need the next most-important item.",
+        "It is ideal for top-k, scheduling, and merging sorted streams.",
+    ],
+    "matrix": [
+        "A matrix is a 2D grid of values indexed by row and column (grid[r][c]).",
+        "The outer loop usually walks rows; the inner loop walks columns.",
+        "Neighbors are the cells up/down/left/right (sometimes diagonals); check bounds before accessing.",
+        "Off-by-one errors and swapped row/column indexes are the most common bugs.",
+    ],
+    "design": [
+        "Design problems ask you to build a small component with specific operations (e.g. a cache or queue).",
+        "Focus on the invariants: the rules that must stay true after every operation.",
+        "Pick data structures that make the required operations efficient.",
+        "Think through edge cases: empty state, capacity limits, and repeated keys.",
+    ],
+}
+
+
 LANGUAGE_NOTES = {
     "python": {
         "file": "solution.py",
@@ -238,38 +444,727 @@ LANGUAGE_NOTES = {
 }
 
 
+# Concrete coding exercises per topic. Each says exactly what to build and the
+# expected result, so the learner is never left guessing what is being asked.
+PRACTICE_TASKS = {
+    "variables": "Create two variables: one holding your name (text) and one holding your age (a number). Print both on one line, e.g. 'Ryu 21'.",
+    "types": 'Make a variable holding the text "10", convert it to a number, add 5, and print the result. It should print 15, not 105.',
+    "input": "Ask the user for their age, convert the typed text to a number, add 1, and print 'Next year you will be ' followed by that number.",
+    "conditionals": "Set a number variable. Print 'positive' if it is greater than 0, 'negative' if it is less than 0, and 'zero' otherwise.",
+    "loops": "Use a loop to print the numbers 1 through 10, each on its own line.",
+    "functions": "Write a function called square that takes one number and returns it multiplied by itself. Call square(4) and print the result (16).",
+    "arrays": "Make an array/list of the three numbers 3, 1, 4. Loop through it and print their total (8).",
+    "strings": 'Set a variable to the word "hello". Print its length (5), then print just its first character (h).',
+    "hash_maps": 'Count how many times each letter appears in the word "apple" using a hash map/dictionary, then print the counts.',
+    "stack": "Push the numbers 1, 2, then 3 onto a stack. Pop them off one at a time and print each — they should come out 3, 2, 1.",
+    "two_pointers": "Given the sorted list [1, 2, 3, 4, 6], use one pointer at each end to find a pair that adds up to 7, and print the two values (1 and 6).",
+    "sliding_window": "Given [2, 1, 5, 1, 3, 2], use a window of size 3 to find and print the largest sum of any 3 numbers in a row (9).",
+    "binary_search": "Given the sorted list [1, 3, 5, 7, 9], use binary search to find the value 7 and print its index (3).",
+    "classes": "Define a class called Dog with a name and a method bark() that prints '<name> says woof'. Create a Dog named Rex and call bark().",
+    "linked_lists": "Build a linked list of three nodes holding 1, 2, 3. Then walk the list from the start and print each value.",
+    "recursion": "Write a recursive function that computes the factorial of a number (n! = n*(n-1)*...*1). Call it with 5 and print the result (120).",
+    "trees": "Build a small binary tree: a root holding 1 with children 2 and 3. Write a function that visits and prints every node's value.",
+    "graphs": "Store this graph as an adjacency list: node 0 connects to 1 and 2; node 1 connects to 2. Print all the neighbors of node 0.",
+    "dynamic_programming": "Compute the 10th Fibonacci number by storing each answer in an array/dictionary as you build up. Print the result (55).",
+    "heap": "Put the numbers 5, 1, 8, 3 into a min-heap / priority queue, then remove and print the smallest item (1).",
+    "matrix": "Make a 2x3 grid of numbers ([[1,2,3],[4,5,6]]). Loop through it and print each row on its own line.",
+    "design": "Design a Stack class with a capacity of 2 whose push() ignores new items when full. Push 1, 2, 3, then print how many items it holds (2).",
+}
+
+
 EXAMPLE_SNIPPETS = {
     "python": {
-        "variables": 'name = "Ryu"\nscore = 10\nprint(name, score)',
-        "conditionals": 'age = 20\nif age >= 18:\n    print("adult")\nelse:\n    print("minor")',
-        "loops": 'for n in range(1, 6):\n    print(n)',
-        "functions": 'def add(a, b):\n    return a + b\n\nprint(add(2, 3))',
-        "arrays": 'nums = [3, 1, 4]\nfor n in nums:\n    print(n)',
-        "strings": 'word = "level"\nprint(word == word[::-1])',
-        "hash_maps": 'counts = {}\nfor ch in "banana":\n    counts[ch] = counts.get(ch, 0) + 1\nprint(counts)',
-        "classes": 'class Counter:\n    def __init__(self):\n        self.value = 0\n    def inc(self):\n        self.value += 1',
+        "variables": (
+            '# A variable is a name that stores a value so you can reuse it.\n'
+            'name = "Ryu"        # text wrapped in quotes is a string\n'
+            'score = 10          # a whole number is an integer\n'
+            'print(name, score)  # print shows values, separated by a space'
+        ),
+        "conditionals": (
+            'age = 20              # the value we want to test\n'
+            'if age >= 18:         # if this condition is True, run the block\n'
+            '    print("adult")    # indentation marks what belongs to the if\n'
+            'else:                 # otherwise fall through to here\n'
+            '    print("minor")    # runs only when the condition was False'
+        ),
+        "loops": (
+            '# range(1, 6) gives 1,2,3,4,5 -- the stop value 6 is excluded.\n'
+            'for n in range(1, 6):  # n takes each value in turn\n'
+            '    print(n)           # the body runs once per pass'
+        ),
+        "functions": (
+            'def add(a, b):       # def names a reusable function with inputs\n'
+            '    return a + b     # return hands a value back to the caller\n'
+            '\n'
+            'print(add(2, 3))     # call the function; this prints 5'
+        ),
+        "arrays": (
+            'nums = [3, 1, 4]   # a list holds many values in order\n'
+            'for n in nums:     # the loop visits each item once\n'
+            '    print(n)       # prints 3, then 1, then 4'
+        ),
+        "strings": (
+            'word = "level"             # a string is a sequence of characters\n'
+            '# word[::-1] reverses the string; equal means it is a palindrome.\n'
+            'print(word == word[::-1])  # True when it reads the same backward'
+        ),
+        "hash_maps": (
+            'counts = {}                 # a dict maps keys to values\n'
+            'for ch in "banana":         # look at each character\n'
+            '    counts[ch] = counts.get(ch, 0) + 1  # add 1, default 0 if new\n'
+            'print(counts)               # {\'b\': 1, \'a\': 3, \'n\': 2}'
+        ),
+        "classes": (
+            'class Counter:          # a class is a blueprint for objects\n'
+            '    def __init__(self): # __init__ runs when you create one\n'
+            '        self.value = 0  # self stores data on the instance\n'
+            '    def inc(self):      # a method is a function tied to the object\n'
+            '        self.value += 1 # update this instance\'s own value'
+        ),
     },
     "c": {
-        "variables": '#include <stdio.h>\nint main(void) {\n    int score = 10;\n    printf("%d\\n", score);\n    return 0;\n}',
-        "conditionals": '#include <stdio.h>\nint main(void) {\n    int age = 20;\n    if (age >= 18) printf("adult\\n");\n    else printf("minor\\n");\n    return 0;\n}',
-        "loops": '#include <stdio.h>\nint main(void) {\n    for (int n = 1; n <= 5; n++) printf("%d\\n", n);\n    return 0;\n}',
-        "functions": '#include <stdio.h>\nint add(int a, int b) { return a + b; }\nint main(void) {\n    printf("%d\\n", add(2, 3));\n    return 0;\n}',
-        "arrays": '#include <stdio.h>\nint main(void) {\n    int nums[] = {3, 1, 4};\n    for (int i = 0; i < 3; i++) printf("%d\\n", nums[i]);\n    return 0;\n}',
-        "strings": '#include <stdio.h>\n#include <string.h>\nint main(void) {\n    char word[] = "level";\n    printf("%zu\\n", strlen(word));\n    return 0;\n}',
+        "variables": (
+            '#include <stdio.h>      // brings in printf for output\n'
+            'int main(void) {        // every C program starts at main\n'
+            '    int score = 10;     // C needs an explicit type (int)\n'
+            '    printf("%d\\n", score); // %d prints an int; \\n is a newline\n'
+            '    return 0;           // 0 tells the OS it succeeded\n'
+            '}'
+        ),
+        "conditionals": (
+            '#include <stdio.h>\n'
+            'int main(void) {\n'
+            '    int age = 20;            // the value to test\n'
+            '    if (age >= 18)           // parentheses hold the condition\n'
+            '        printf("adult\\n");   // runs when the condition is true\n'
+            '    else\n'
+            '        printf("minor\\n");   // runs otherwise\n'
+            '    return 0;\n'
+            '}'
+        ),
+        "loops": (
+            '#include <stdio.h>\n'
+            'int main(void) {\n'
+            '    // for (start; condition; step) repeats while condition holds\n'
+            '    for (int i = 1; i <= 5; i++)  // i counts 1..5\n'
+            '        printf("%d\\n", i);       // body runs once per pass\n'
+            '    return 0;\n'
+            '}'
+        ),
+        "functions": (
+            '#include <stdio.h>\n'
+            'int add(int a, int b) {     // declare return and parameter types\n'
+            '    return a + b;           // hand the sum back to the caller\n'
+            '}\n'
+            'int main(void) {\n'
+            '    printf("%d\\n", add(2, 3)); // call add and print 5\n'
+            '    return 0;\n'
+            '}'
+        ),
+        "arrays": (
+            '#include <stdio.h>\n'
+            'int main(void) {\n'
+            '    int nums[] = {3, 1, 4};      // a fixed-size array of ints\n'
+            '    for (int i = 0; i < 3; i++)  // index from 0 to length-1\n'
+            '        printf("%d\\n", nums[i]); // nums[i] reads element i\n'
+            '    return 0;\n'
+            '}'
+        ),
+        "strings": (
+            '#include <stdio.h>\n'
+            '#include <string.h>          // strlen is declared here\n'
+            'int main(void) {\n'
+            '    char word[] = "level";   // a C string is a char array\n'
+            '    printf("%zu\\n", strlen(word)); // counts chars before the \\0\n'
+            '    return 0;\n'
+            '}'
+        ),
         "hash_maps": 'C has no built-in hash map. Start with arrays/counting tables for small key ranges, then learn structs plus a hash table implementation.',
         "classes": 'C has structs, not classes. Use a struct for data and functions that receive a pointer to that struct.',
     },
     "java": {
-        "variables": 'public class Main {\n    public static void main(String[] args) {\n        int score = 10;\n        System.out.println(score);\n    }\n}',
-        "conditionals": 'public class Main {\n    public static void main(String[] args) {\n        int age = 20;\n        if (age >= 18) System.out.println("adult");\n        else System.out.println("minor");\n    }\n}',
-        "loops": 'public class Main {\n    public static void main(String[] args) {\n        for (int n = 1; n <= 5; n++) System.out.println(n);\n    }\n}',
-        "functions": 'public class Main {\n    static int add(int a, int b) { return a + b; }\n    public static void main(String[] args) {\n        System.out.println(add(2, 3));\n    }\n}',
-        "arrays": 'public class Main {\n    public static void main(String[] args) {\n        int[] nums = {3, 1, 4};\n        for (int n : nums) System.out.println(n);\n    }\n}',
-        "strings": 'public class Main {\n    public static void main(String[] args) {\n        String word = "level";\n        System.out.println(word.length());\n    }\n}',
-        "hash_maps": 'import java.util.*;\npublic class Main {\n    public static void main(String[] args) {\n        Map<Character, Integer> counts = new HashMap<>();\n        for (char ch : "banana".toCharArray()) counts.put(ch, counts.getOrDefault(ch, 0) + 1);\n        System.out.println(counts);\n    }\n}',
-        "classes": 'class Counter {\n    int value = 0;\n    void inc() { value++; }\n}',
+        "variables": (
+            'public class Main {                       // code lives in a class\n'
+            '    public static void main(String[] args) {  // program entry point\n'
+            '        int score = 10;                   // a typed variable\n'
+            '        System.out.println(score);        // print, then newline\n'
+            '    }\n'
+            '}'
+        ),
+        "conditionals": (
+            'public class Main {\n'
+            '    public static void main(String[] args) {\n'
+            '        int age = 20;                    // value to test\n'
+            '        if (age >= 18)                   // condition in parentheses\n'
+            '            System.out.println("adult"); // runs when true\n'
+            '        else\n'
+            '            System.out.println("minor"); // runs otherwise\n'
+            '    }\n'
+            '}'
+        ),
+        "loops": (
+            'public class Main {\n'
+            '    public static void main(String[] args) {\n'
+            '        // for (start; condition; step) repeats while true\n'
+            '        for (int n = 1; n <= 5; n++)     // n counts 1..5\n'
+            '            System.out.println(n);       // body runs each pass\n'
+            '    }\n'
+            '}'
+        ),
+        "functions": (
+            'public class Main {\n'
+            '    static int add(int a, int b) {       // typed params + return\n'
+            '        return a + b;                    // send the sum back\n'
+            '    }\n'
+            '    public static void main(String[] args) {\n'
+            '        System.out.println(add(2, 3));   // prints 5\n'
+            '    }\n'
+            '}'
+        ),
+        "arrays": (
+            'public class Main {\n'
+            '    public static void main(String[] args) {\n'
+            '        int[] nums = {3, 1, 4};          // an array of ints\n'
+            '        for (int n : nums)               // for-each visits each item\n'
+            '            System.out.println(n);       // prints 3, 1, 4\n'
+            '    }\n'
+            '}'
+        ),
+        "strings": (
+            'public class Main {\n'
+            '    public static void main(String[] args) {\n'
+            '        String word = "level";           // String holds text\n'
+            '        System.out.println(word.length()); // length() counts chars\n'
+            '    }\n'
+            '}'
+        ),
+        "hash_maps": (
+            'import java.util.*;          // Map and HashMap live here\n'
+            'public class Main {\n'
+            '    public static void main(String[] args) {\n'
+            '        Map<Character, Integer> counts = new HashMap<>(); // key->count\n'
+            '        for (char ch : "banana".toCharArray())   // each character\n'
+            '            counts.put(ch, counts.getOrDefault(ch, 0) + 1); // +1, def 0\n'
+            '        System.out.println(counts);      // {a=3, b=1, n=2}\n'
+            '    }\n'
+            '}'
+        ),
+        "classes": (
+            'class Counter {           // a class bundles data and behavior\n'
+            '    int value = 0;        // a field stored on each object\n'
+            '    void inc() {          // a method that acts on this object\n'
+            '        value++;          // increase this object\'s value by 1\n'
+            '    }\n'
+            '}'
+        ),
     },
 }
+
+
+# Additional topic examples (kept here to keep the literal above readable).
+EXAMPLE_SNIPPETS["python"].update({
+    "types": (
+        'n = 42                    # an integer\n'
+        'pi = 3.14                 # a float (decimal number)\n'
+        'text = "42"               # a string that only looks like a number\n'
+        'print(int(text) + n)      # int("42") converts text to 42, so this is 84\n'
+        'print(type(pi).__name__)  # float'
+    ),
+    "input": (
+        '# input() always returns text, so convert before doing math.\n'
+        'raw = input("Enter a number: ")  # e.g. the user types 10\n'
+        'num = int(raw)                   # turn the text "10" into the integer 10\n'
+        'print(num * 2)                   # now arithmetic works -> 20'
+    ),
+    "stack": (
+        'stack = []          # a plain list works as a stack\n'
+        'stack.append(1)     # push 1 onto the top\n'
+        'stack.append(2)     # push 2 onto the top\n'
+        'top = stack.pop()   # pop removes and returns the top item (2)\n'
+        'print(top, stack)   # 2 [1]'
+    ),
+    "two_pointers": (
+        'nums = [1, 2, 3, 4, 6]          # must be sorted\n'
+        'left, right = 0, len(nums) - 1  # one pointer at each end\n'
+        'target = 7\n'
+        'while left < right:             # move the pointers inward\n'
+        '    s = nums[left] + nums[right]\n'
+        '    if s == target:\n'
+        '        print(left, right); break   # found a pair that sums to 7\n'
+        '    elif s < target:\n'
+        '        left += 1               # too small: raise the low end\n'
+        '    else:\n'
+        '        right -= 1              # too big: lower the high end'
+    ),
+    "sliding_window": (
+        'nums = [2, 1, 5, 1, 3, 2]   # largest sum of any 3 in a row?\n'
+        'k = 3\n'
+        'window = sum(nums[:k])      # sum of the first window\n'
+        'best = window\n'
+        'for i in range(k, len(nums)):        # slide the window right\n'
+        '    window += nums[i] - nums[i - k]  # add the new item, drop the old\n'
+        '    best = max(best, window)\n'
+        'print(best)                 # 9 (from 5, 1, 3)'
+    ),
+    "binary_search": (
+        'nums = [1, 3, 5, 7, 9]   # binary search needs sorted data\n'
+        'target = 7\n'
+        'lo, hi = 0, len(nums) - 1\n'
+        'while lo <= hi:\n'
+        '    mid = (lo + hi) // 2     # look at the middle\n'
+        '    if nums[mid] == target:\n'
+        '        print(mid); break    # found it (index 3)\n'
+        '    elif nums[mid] < target:\n'
+        '        lo = mid + 1         # answer is in the right half\n'
+        '    else:\n'
+        '        hi = mid - 1         # answer is in the left half'
+    ),
+    "linked_lists": (
+        'class Node:                # one link in the chain\n'
+        '    def __init__(self, value):\n'
+        '        self.value = value\n'
+        '        self.next = None   # points to the next node, None at the end\n'
+        '\n'
+        'a = Node(1)                # build the chain 1 -> 2\n'
+        'a.next = Node(2)\n'
+        'node = a\n'
+        'while node:                # walk it by following .next\n'
+        '    print(node.value)\n'
+        '    node = node.next'
+    ),
+    "recursion": (
+        'def factorial(n):          # n! = n * (n-1) * ... * 1\n'
+        '    if n <= 1:             # base case: stops the recursion\n'
+        '        return 1\n'
+        '    return n * factorial(n - 1)  # call itself on a smaller n\n'
+        '\n'
+        'print(factorial(5))        # 120'
+    ),
+    "trees": (
+        'class Node:                # a binary tree node\n'
+        '    def __init__(self, value):\n'
+        '        self.value = value\n'
+        '        self.left = None\n'
+        '        self.right = None\n'
+        '\n'
+        'root = Node(1)             # build a tiny tree\n'
+        'root.left = Node(2)\n'
+        'root.right = Node(3)\n'
+        '\n'
+        'def visit(node):           # depth-first pre-order traversal\n'
+        '    if not node:           # base case: empty branch\n'
+        '        return\n'
+        '    print(node.value)\n'
+        '    visit(node.left)\n'
+        '    visit(node.right)\n'
+        '\n'
+        'visit(root)                # 1 2 3'
+    ),
+    "graphs": (
+        '# adjacency list: each node maps to its list of neighbors\n'
+        'graph = {1: [2, 3], 2: [4], 3: [], 4: []}\n'
+        'visited = set()\n'
+        'stack = [1]                # depth-first search from node 1\n'
+        'while stack:\n'
+        '    node = stack.pop()\n'
+        '    if node in visited:    # skip nodes already seen\n'
+        '        continue\n'
+        '    visited.add(node)\n'
+        '    print(node)\n'
+        '    stack.extend(graph[node])  # queue up the neighbors'
+    ),
+    "dynamic_programming": (
+        '# nth Fibonacci number, reusing answers to subproblems\n'
+        'memo = {0: 0, 1: 1}        # base cases\n'
+        'def fib(n):\n'
+        '    if n not in memo:      # solve each subproblem only once\n'
+        '        memo[n] = fib(n - 1) + fib(n - 2)\n'
+        '    return memo[n]\n'
+        '\n'
+        'print(fib(10))             # 55'
+    ),
+    "heap": (
+        'import heapq               # the min-heap helpers live here\n'
+        'nums = [5, 1, 8, 3]\n'
+        'heapq.heapify(nums)        # rearrange the list into a heap\n'
+        'heapq.heappush(nums, 2)    # add a value, keeping heap order\n'
+        'print(heapq.heappop(nums)) # 1 -- always the smallest item'
+    ),
+    "matrix": (
+        'grid = [[1, 2, 3],         # a 2D grid: rows of columns\n'
+        '        [4, 5, 6]]\n'
+        'for r in range(len(grid)):          # walk each row\n'
+        '    for c in range(len(grid[0])):   # walk each column\n'
+        '        print(grid[r][c], end=" ")  # grid[r][c] reads one cell\n'
+        '    print()                # newline after each row'
+    ),
+    "design": (
+        'class Stack:               # design a stack with a size limit\n'
+        '    def __init__(self, cap):\n'
+        '        self.cap = cap     # invariant: never hold more than cap\n'
+        '        self.items = []\n'
+        '    def push(self, x):\n'
+        '        if len(self.items) < self.cap:  # enforce the invariant\n'
+        '            self.items.append(x)\n'
+        '    def pop(self):\n'
+        '        return self.items.pop() if self.items else None\n'
+        '\n'
+        's = Stack(2)\n'
+        's.push(1); s.push(2); s.push(3)  # third push is ignored (cap 2)\n'
+        'print(s.items)             # [1, 2]'
+    ),
+})
+
+EXAMPLE_SNIPPETS["c"].update({
+    "types": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    int n = 42;          // an integer\n'
+        '    double pi = 3.14;    // a floating-point number\n'
+        "    char letter = 'A';   // a single character\n"
+        '    printf("%d %.2f %c\\n", n, pi, letter); // each %.. matches a type\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "input": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    int num;                 // where the input will be stored\n'
+        '    printf("Enter a number: ");\n'
+        '    scanf("%d", &num);       // read an int into num (& = its address)\n'
+        '    printf("%d\\n", num * 2); // use the value once it is read\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "stack": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    int stack[100];      // an array used as a stack\n'
+        '    int top = 0;         // index of the next free slot\n'
+        '    stack[top++] = 1;    // push 1\n'
+        '    stack[top++] = 2;    // push 2\n'
+        '    int x = stack[--top]; // pop the top value (2)\n'
+        '    printf("%d\\n", x);\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "two_pointers": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    int nums[] = {1, 2, 3, 4, 6};   // sorted\n'
+        '    int left = 0, right = 4, target = 7;\n'
+        '    while (left < right) {          // move pointers inward\n'
+        '        int s = nums[left] + nums[right];\n'
+        '        if (s == target) { printf("%d %d\\n", left, right); break; }\n'
+        '        else if (s < target) left++;  // too small\n'
+        '        else right--;                 // too big\n'
+        '    }\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "sliding_window": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    int nums[] = {2, 1, 5, 1, 3, 2}, n = 6, k = 3;\n'
+        '    int window = 0;\n'
+        '    for (int i = 0; i < k; i++) window += nums[i]; // first window\n'
+        '    int best = window;\n'
+        '    for (int i = k; i < n; i++) {        // slide right\n'
+        '        window += nums[i] - nums[i - k]; // add new, drop old\n'
+        '        if (window > best) best = window;\n'
+        '    }\n'
+        '    printf("%d\\n", best);  // 9\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "binary_search": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    int nums[] = {1, 3, 5, 7, 9}, lo = 0, hi = 4, target = 7;\n'
+        '    while (lo <= hi) {\n'
+        '        int mid = (lo + hi) / 2;     // middle index\n'
+        '        if (nums[mid] == target) { printf("%d\\n", mid); break; }\n'
+        '        else if (nums[mid] < target) lo = mid + 1; // right half\n'
+        '        else hi = mid - 1;                          // left half\n'
+        '    }\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "linked_lists": (
+        '#include <stdio.h>\n'
+        '#include <stdlib.h>\n'
+        'struct Node { int value; struct Node *next; }; // value + next\n'
+        'int main(void) {\n'
+        '    struct Node *a = malloc(sizeof(struct Node)); // node 1\n'
+        '    a->value = 1;\n'
+        '    a->next = malloc(sizeof(struct Node));        // node 2\n'
+        '    a->next->value = 2;\n'
+        '    a->next->next = NULL;                         // end of list\n'
+        '    for (struct Node *n = a; n; n = n->next)      // follow next\n'
+        '        printf("%d\\n", n->value);\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "recursion": (
+        '#include <stdio.h>\n'
+        'int factorial(int n) {       // n! = n * (n-1) * ... * 1\n'
+        '    if (n <= 1) return 1;    // base case stops the recursion\n'
+        '    return n * factorial(n - 1); // call itself on a smaller n\n'
+        '}\n'
+        'int main(void) {\n'
+        '    printf("%d\\n", factorial(5)); // 120\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "trees": (
+        '#include <stdio.h>\n'
+        'struct Node { int value; struct Node *left, *right; };\n'
+        'void visit(struct Node *n) { // depth-first pre-order\n'
+        '    if (!n) return;          // base case: empty branch\n'
+        '    printf("%d\\n", n->value);\n'
+        '    visit(n->left);\n'
+        '    visit(n->right);\n'
+        '}\n'
+        'int main(void) {\n'
+        '    struct Node root = {1, NULL, NULL}; // a single-node tree\n'
+        '    visit(&root);            // prints 1\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "graphs": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    // adjacency matrix: edge[a][b] == 1 means a connects to b\n'
+        '    int edge[3][3] = {{0,1,1},{0,0,1},{0,0,0}};\n'
+        '    int from = 0;\n'
+        '    for (int to = 0; to < 3; to++)        // node 0 neighbors\n'
+        '        if (edge[from][to]) printf("0 -> %d\\n", to);\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "dynamic_programming": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    int n = 10, dp[11];      // dp[i] = i-th Fibonacci number\n'
+        '    dp[0] = 0; dp[1] = 1;    // base cases\n'
+        '    for (int i = 2; i <= n; i++)        // build up from small i\n'
+        '        dp[i] = dp[i - 1] + dp[i - 2];  // the recurrence\n'
+        '    printf("%d\\n", dp[n]);   // 55\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "heap": 'C has no built-in heap. Store items in an array where the children of index i are 2*i+1 and 2*i+2, and sift values up or down to keep the smallest on top, or use a library.',
+    "matrix": (
+        '#include <stdio.h>\n'
+        'int main(void) {\n'
+        '    int grid[2][3] = {{1,2,3},{4,5,6}}; // 2 rows, 3 columns\n'
+        '    for (int r = 0; r < 2; r++) {        // walk rows\n'
+        '        for (int c = 0; c < 3; c++)      // walk columns\n'
+        '            printf("%d ", grid[r][c]);   // read one cell\n'
+        '        printf("\\n");\n'
+        '    }\n'
+        '    return 0;\n'
+        '}'
+    ),
+    "design": (
+        '#include <stdio.h>\n'
+        '#define CAP 2\n'
+        'struct Stack { int items[CAP]; int size; }; // invariant: size <= CAP\n'
+        'void push(struct Stack *s, int x) {\n'
+        '    if (s->size < CAP) s->items[s->size++] = x; // enforce the cap\n'
+        '}\n'
+        'int main(void) {\n'
+        '    struct Stack s = {{0}, 0};\n'
+        '    push(&s, 1); push(&s, 2); push(&s, 3); // third push ignored\n'
+        '    printf("%d\\n", s.size);  // 2\n'
+        '    return 0;\n'
+        '}'
+    ),
+})
+
+EXAMPLE_SNIPPETS["java"].update({
+    "types": (
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        int n = 42;                  // integer\n'
+        '        double pi = 3.14;            // floating-point\n'
+        '        String text = "42";          // text that looks like a number\n'
+        '        System.out.println(Integer.parseInt(text) + n); // parse -> 84\n'
+        '    }\n'
+        '}'
+    ),
+    "input": (
+        'import java.util.Scanner;            // Scanner reads input\n'
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        Scanner sc = new Scanner(System.in);\n'
+        '        int num = sc.nextInt();      // read an int the user types\n'
+        '        System.out.println(num * 2); // use the value\n'
+        '    }\n'
+        '}'
+    ),
+    "stack": (
+        'import java.util.*;\n'
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        Deque<Integer> stack = new ArrayDeque<>(); // used as a stack\n'
+        '        stack.push(1);               // push onto the top\n'
+        '        stack.push(2);\n'
+        '        System.out.println(stack.pop()); // pop the top -> 2\n'
+        '    }\n'
+        '}'
+    ),
+    "two_pointers": (
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        int[] nums = {1, 2, 3, 4, 6}; // sorted\n'
+        '        int left = 0, right = 4, target = 7;\n'
+        '        while (left < right) {        // move pointers inward\n'
+        '            int s = nums[left] + nums[right];\n'
+        '            if (s == target) { System.out.println(left + "," + right); break; }\n'
+        '            else if (s < target) left++; // too small\n'
+        '            else right--;                // too big\n'
+        '        }\n'
+        '    }\n'
+        '}'
+    ),
+    "sliding_window": (
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        int[] nums = {2, 1, 5, 1, 3, 2};\n'
+        '        int k = 3, window = 0;\n'
+        '        for (int i = 0; i < k; i++) window += nums[i]; // first window\n'
+        '        int best = window;\n'
+        '        for (int i = k; i < nums.length; i++) {    // slide right\n'
+        '            window += nums[i] - nums[i - k];        // add new, drop old\n'
+        '            best = Math.max(best, window);\n'
+        '        }\n'
+        '        System.out.println(best);  // 9\n'
+        '    }\n'
+        '}'
+    ),
+    "binary_search": (
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        int[] nums = {1, 3, 5, 7, 9};\n'
+        '        int lo = 0, hi = 4, target = 7;\n'
+        '        while (lo <= hi) {\n'
+        '            int mid = (lo + hi) / 2;     // middle index\n'
+        '            if (nums[mid] == target) { System.out.println(mid); break; }\n'
+        '            else if (nums[mid] < target) lo = mid + 1; // right half\n'
+        '            else hi = mid - 1;                          // left half\n'
+        '        }\n'
+        '    }\n'
+        '}'
+    ),
+    "linked_lists": (
+        'public class Main {\n'
+        '    static class Node {          // one link in the chain\n'
+        '        int value; Node next;\n'
+        '        Node(int v) { value = v; }\n'
+        '    }\n'
+        '    public static void main(String[] args) {\n'
+        '        Node a = new Node(1);    // build 1 -> 2\n'
+        '        a.next = new Node(2);\n'
+        '        for (Node n = a; n != null; n = n.next) // follow next\n'
+        '            System.out.println(n.value);\n'
+        '    }\n'
+        '}'
+    ),
+    "recursion": (
+        'public class Main {\n'
+        '    static int factorial(int n) {    // n! = n * (n-1) * ... * 1\n'
+        '        if (n <= 1) return 1;        // base case stops recursion\n'
+        '        return n * factorial(n - 1); // smaller subproblem\n'
+        '    }\n'
+        '    public static void main(String[] args) {\n'
+        '        System.out.println(factorial(5)); // 120\n'
+        '    }\n'
+        '}'
+    ),
+    "trees": (
+        'public class Main {\n'
+        '    static class Node {          // a binary tree node\n'
+        '        int value; Node left, right;\n'
+        '        Node(int v) { value = v; }\n'
+        '    }\n'
+        '    static void visit(Node n) {  // depth-first pre-order\n'
+        '        if (n == null) return;   // base case: empty branch\n'
+        '        System.out.println(n.value);\n'
+        '        visit(n.left);\n'
+        '        visit(n.right);\n'
+        '    }\n'
+        '    public static void main(String[] args) {\n'
+        '        Node root = new Node(1);\n'
+        '        root.left = new Node(2);\n'
+        '        visit(root);             // 1 2\n'
+        '    }\n'
+        '}'
+    ),
+    "graphs": (
+        'import java.util.*;\n'
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        // adjacency list: a node maps to its neighbors\n'
+        '        Map<Integer, List<Integer>> g = new HashMap<>();\n'
+        '        g.put(0, Arrays.asList(1, 2));\n'
+        '        for (int to : g.get(0))  // list node 0 neighbors\n'
+        '            System.out.println("0 -> " + to);\n'
+        '    }\n'
+        '}'
+    ),
+    "dynamic_programming": (
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        int n = 10;\n'
+        '        int[] dp = new int[n + 1];   // dp[i] = i-th Fibonacci\n'
+        '        dp[0] = 0; dp[1] = 1;        // base cases\n'
+        '        for (int i = 2; i <= n; i++)        // build up\n'
+        '            dp[i] = dp[i - 1] + dp[i - 2];  // the recurrence\n'
+        '        System.out.println(dp[n]);   // 55\n'
+        '    }\n'
+        '}'
+    ),
+    "heap": (
+        'import java.util.*;\n'
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        // PriorityQueue is a min-heap by default\n'
+        '        PriorityQueue<Integer> heap = new PriorityQueue<>();\n'
+        '        heap.add(5); heap.add(1); heap.add(8);\n'
+        '        System.out.println(heap.poll()); // 1 -- smallest first\n'
+        '    }\n'
+        '}'
+    ),
+    "matrix": (
+        'public class Main {\n'
+        '    public static void main(String[] args) {\n'
+        '        int[][] grid = {{1, 2, 3}, {4, 5, 6}}; // 2 rows, 3 cols\n'
+        '        for (int r = 0; r < grid.length; r++) {      // walk rows\n'
+        '            for (int c = 0; c < grid[0].length; c++) // walk columns\n'
+        '                System.out.print(grid[r][c] + " ");  // one cell\n'
+        '            System.out.println();\n'
+        '        }\n'
+        '    }\n'
+        '}'
+    ),
+    "design": (
+        'public class Main {\n'
+        '    static class Stack {         // a stack with a size limit\n'
+        '        int[] items; int size = 0;\n'
+        '        Stack(int cap) { items = new int[cap]; } // invariant: size<=cap\n'
+        '        void push(int x) {\n'
+        '            if (size < items.length) items[size++] = x; // enforce cap\n'
+        '        }\n'
+        '    }\n'
+        '    public static void main(String[] args) {\n'
+        '        Stack s = new Stack(2);\n'
+        '        s.push(1); s.push(2); s.push(3); // third push ignored\n'
+        '        System.out.println(s.size);  // 2\n'
+        '    }\n'
+        '}'
+    ),
+})
 
 
 QUIZ_BY_TOPIC = {
@@ -296,6 +1191,1008 @@ QUIZ_BY_TOPIC = {
     "matrix": ("A matrix is indexed by row and what?", ["column", "col"]),
     "design": ("Design problems are mostly about preserving what over operations?", ["invariants", "state", "constraints"]),
 }
+
+
+def _clean_snippet(text: str) -> str:
+    return textwrap.dedent(text).strip()
+
+
+def _ai_lesson(
+    title: str,
+    objective: str,
+    fundamentals: list[str],
+    build: str,
+    quiz: tuple[str, list[str]],
+    example: str = "",
+    example_title: str = "Example",
+) -> dict:
+    lesson = {
+        "title": title,
+        "objective": objective,
+        "fundamentals": fundamentals,
+        "build": build,
+        "quiz": quiz,
+    }
+    if example:
+        lesson["example"] = _clean_snippet(example)
+        lesson["example_title"] = example_title
+    return lesson
+
+
+# Course-audit extensions from PROGRAM Curriculum Audit Guide.pdf. These are
+# appended after the shared fundamentals so the existing teach -> practice flow
+# and LeetCode unlock path stay intact while each language gains course-specific
+# depth.
+AUDIT_LESSON_TOPICS = {
+    "java": [
+        ("java_language_foundations", "Java language foundations", "Cover CS 5004 Java type systems, operators, arrays, strings, constants, and type safety."),
+        ("java_control_flow", "Java control flow", "Use Java branch and loop constructs deliberately, including tracing and early exits."),
+        ("java_methods_contracts", "Methods, scope, and contracts", "Design methods with signatures, purpose statements, preconditions, postconditions, scope, and recursion."),
+        ("java_classes_constructors", "Classes, objects, and constructors", "Build Java classes with fields, constructors, methods, this, access control, and toString."),
+        ("java_enums_exceptions", "Enums and exceptions", "Represent fixed domains with enums and handle failure with Java exceptions."),
+        ("java_encapsulation_invariants", "Encapsulation and invariants", "Protect object state with information hiding, invariants, cohesion, and immutable design."),
+        ("java_inheritance_polymorphism", "Inheritance and polymorphism", "Use subclassing, overriding, super, dynamic dispatch, and composition tradeoffs."),
+        ("java_abstract_interfaces", "Abstract classes and interfaces", "Model contracts with interfaces, abstract classes, Comparable, Comparator, and interface-based design."),
+        ("java_equality_hashing", "Equality, comparison, and hashing", "Implement equals, hashCode, Comparable, and Comparator without breaking Java contracts."),
+        ("java_generics_hofs", "Generics and higher-order functions", "Use type parameters, bounded generics, lambdas, functional interfaces, and streams."),
+        ("java_recursive_lists", "Recursive lists and ADTs", "Implement recursive linked structures and separate list interfaces from concrete implementations."),
+        ("java_adts_collections", "ADTs and Java collections", "Choose and use stacks, queues, trees, maps, lists, sets, iterators, and collection utilities."),
+        ("java_design_patterns", "Design patterns", "Recognize and implement common creational, structural, and behavioral Java design patterns."),
+        ("java_mvc", "Model-View-Controller", "Separate model state, view rendering, and controller input using clear interfaces."),
+        ("java_testing_debug_docs", "Testing, debugging, and docs", "Write JUnit tests, debug with breakpoints, document with Javadoc, and manage builds with Gradle."),
+        ("java_big_o", "Algorithm analysis in Java", "Estimate time and space complexity for loops, recursive methods, ADTs, and divide-and-conquer code."),
+        ("java_uml", "UML and diagramming", "Read and draw class diagrams with fields, methods, visibility, inheritance, composition, and dependencies."),
+        ("java_packages_builds", "Packages, modules, and organization", "Organize Java projects with packages, imports, JAR/classpath basics, and dependency boundaries."),
+    ],
+    "c": [
+        ("c_systems_linux", "Systems overview and Linux", "Use Linux command-line tools, permissions, shell redirection, gcc flags, and Makefiles."),
+        ("c_foundations_headers", "C foundations and headers", "Write C with primitive types, control flow, functions, headers, preprocessing, printf, and scanf."),
+        ("c_pointers_memory", "Pointers and memory management", "Use pointers, arrays, dynamic allocation, pointer parameters, valgrind, and safe memory habits."),
+        ("c_structs_types", "Structs and custom data types", "Define structs, typedefs, enums, unions, self-referential nodes, and allocated records."),
+        ("c_debug_assembly", "Debugging, assembly, and CPU basics", "Debug C with gdb and connect compiled code to registers, branches, and CPU execution."),
+        ("c_compilers_linkers", "Compilers, linkers, and code generation", "Trace preprocessing, compilation, assembly, linking, object files, and symbol resolution."),
+        ("c_processes_memory", "Processes and memory hierarchy", "Explain processes, stack frames, heap/data/text segments, caches, locality, and virtual memory."),
+        ("c_concurrency_threads", "Concurrency and threads", "Use pthreads, joins, mutexes, shared state, race-condition reasoning, and deadlock avoidance."),
+        ("c_networking_sockets", "Networking and sockets", "Build a basic client-server model with IPs, ports, TCP sockets, send, and recv."),
+        ("c_linked_lists_deep", "Linked lists in C", "Implement singly and doubly linked lists with insert, delete, search, traversal, and full cleanup."),
+        ("c_stacks_queues", "Stacks and queues in C", "Implement stack and queue ADTs with arrays, linked lists, and circular-buffer tradeoffs."),
+        ("c_algorithm_analysis_formal", "Formal algorithm analysis", "Analyze loops and recurrences with Big-O, Omega, Theta, substitution, Master theorem, and amortization."),
+        ("c_quadratic_sorts", "Quadratic sorting", "Trace selection, insertion, and bubble sort, including stability and in-place behavior."),
+        ("c_nlogn_sorts_proofs", "N log n sorting and proofs", "Implement merge sort and quicksort while reasoning about lower bounds and loop invariants."),
+        ("c_trees_heaps", "Trees, heaps, and heap sort", "Implement binary trees, BST operations, heap operations, heap sort, and priority queues."),
+        ("c_hash_tables", "Hash tables in C", "Build hash maps with hash functions, chaining, open addressing, load factor, and resizing."),
+        ("c_graph_algorithms", "Graph algorithms", "Represent graphs and implement BFS, DFS, topological sort, Dijkstra, and MST awareness."),
+        ("c_greedy", "Greedy algorithms", "Use greedy choice and optimal substructure, and test where greedy algorithms fail."),
+        ("c_dynamic_programming_deep", "Dynamic programming in C", "Design memoized and tabulated solutions for Fibonacci, coin change, knapsack, and LCS."),
+        ("c_recursion_divide_conquer", "Recursion and divide-and-conquer", "Trace C recursion, stack growth, termination, tail recursion, and divide/conquer/combine patterns."),
+    ],
+    "python": [
+        ("python_environment", "Python basics and environment", "Use the REPL, scripts, IDEs, dynamic typing, numeric types, strings, truthiness, None, and docstrings."),
+        ("python_control_flow_deep", "Python control flow", "Use if/elif/else, loops, range, break, continue, pass, nested tracing, and match-case."),
+        ("python_functions_scope", "Functions, scope, and call patterns", "Write Python functions with defaults, keyword args, *args, **kwargs, lambdas, LEGB scope, and recursion."),
+        ("python_builtin_data_structures", "Built-in data structures", "Use lists, tuples, dictionaries, sets, comprehensions, unpacking, and copy semantics."),
+        ("python_text_processing", "Strings, regex, and encodings", "Process text with string methods, formatting, regular expressions, and UTF-8 awareness."),
+        ("python_file_io_data", "File I/O and data handling", "Read and write text, binary, CSV, JSON, command-line arguments, and argparse options."),
+        ("python_error_handling", "Python error handling", "Handle exceptions with try/except/else/finally, raise custom exceptions, and use assertions."),
+        ("python_oop_deep", "Object-oriented Python", "Build classes with dunder methods, inheritance, properties, dataclasses, and abstract base classes."),
+        ("python_iterators_generators_decorators", "Iterators, generators, and decorators", "Implement iteration protocols, yield generators, decorators, functools.wraps, and context managers."),
+        ("python_modules_packages_envs", "Modules, packages, and environments", "Organize imports, packages, virtual environments, requirements, standard library modules, and main guards."),
+        ("python_testing", "Testing in Python", "Write unittest and pytest tests with fixtures, parametrization, mocks, coverage, and TDD workflow."),
+        ("python_ai_ml_readiness", "Python for AI/ML readiness", "Use NumPy, Pandas, plotting, notebooks, HTTP requests, and async awareness for AI engineering workflows."),
+    ],
+}
+
+
+LESSON_EXPLANATIONS.update({
+    "java_language_foundations": [
+        "Java separates primitive types (int, double, boolean, char, long, float, byte, short) from reference types such as String, arrays, and objects.",
+        "Autoboxing wraps primitives in reference types when generics or collections require objects, but you should still know when values are copied vs. referenced.",
+        "Use final for constants and name variables consistently so intent is visible before a reader studies the expression.",
+        "Operators include arithmetic, relational, logical, bitwise, and ternary forms; each has precedence and type rules.",
+        "Strings are immutable, so repeated modification should use StringBuilder; casts can widen safely or narrow with risk.",
+    ],
+    "java_control_flow": [
+        "if/else-if/else chains select one branch; switch and modern switch expressions are clearer for fixed sets of cases.",
+        "for loops are good for counted repetition, enhanced for loops walk collections, while loops repeat until a condition changes, and do-while runs at least once.",
+        "Trace loops with a state table: iteration number, variables before the body, condition result, and variables after the body.",
+        "break exits a loop or switch immediately; continue skips to the next loop iteration.",
+        "Nested loops multiply work, so they matter for both correctness and Big-O analysis.",
+    ],
+    "java_methods_contracts": [
+        "A method signature states the method name, parameter types, and return type; void means the method returns no value.",
+        "Overloading lets one class define multiple methods with the same name but different parameter lists.",
+        "Static methods belong to the class, while instance methods act on a specific object.",
+        "Java is pass-by-value: primitive values are copied, and object reference values are copied, so methods can mutate the referred object but not rebind the caller's variable.",
+        "Purpose statements, preconditions, and postconditions make behavior testable before implementation details are known.",
+        "Local variables live only within their scope; recursive calls create new stack frames until a base case stops them.",
+    ],
+    "java_classes_constructors": [
+        "A class defines fields, constructors, and methods; an object is an instance allocated with new.",
+        "Constructors establish valid initial state and can be overloaded or chained with this(...) to avoid duplication.",
+        "this names the current object, which is useful when parameter names match field names.",
+        "Access modifiers control visibility: private for implementation details, public for the supported API, and protected/package-private for narrower sharing.",
+        "Getters and setters expose state safely when direct field access would break an invariant.",
+        "toString gives objects a useful text representation for debugging and tests.",
+    ],
+    "java_enums_exceptions": [
+        "An enum represents a fixed set of named values and can also define fields, constructors, and methods.",
+        "Exceptions model failures without mixing error paths into normal return values.",
+        "Checked exceptions must be declared or caught; unchecked exceptions usually represent programming errors or invalid runtime conditions.",
+        "try/catch/finally separates risky code, recovery logic, and cleanup.",
+        "Use throw to raise a specific failure and throws in a method signature to declare checked failures.",
+    ],
+    "java_encapsulation_invariants": [
+        "Encapsulation keeps representation private so callers cannot put an object into an invalid state.",
+        "A class invariant is a rule that must be true after construction and after every public method call.",
+        "Information hiding lets you change fields or helper methods without breaking users of the class.",
+        "High cohesion means a class has one clear responsibility; loose coupling means classes depend on narrow contracts.",
+        "Immutable objects enforce invariants by setting all state at construction time and exposing no mutators.",
+    ],
+    "java_inheritance_polymorphism": [
+        "extends creates an is-a relationship where a subclass inherits fields and methods from a superclass.",
+        "Overriding replaces superclass behavior for a method with the same signature; overloading creates a different signature.",
+        "super calls superclass constructors or methods when the subclass needs shared setup or behavior.",
+        "Dynamic dispatch chooses the runtime object's method implementation, even when the variable type is the superclass.",
+        "Every class ultimately inherits from Object, and instanceof plus casting control safe upcasting and downcasting.",
+        "Prefer composition when the relationship is has-a or when inheritance would expose too much implementation detail.",
+    ],
+    "java_abstract_interfaces": [
+        "Abstract classes can hold shared state and partial implementation while leaving abstract methods for subclasses.",
+        "Interfaces define behavior contracts and let unrelated classes be used through the same API.",
+        "A class can implement multiple interfaces, which is often cleaner than deep inheritance.",
+        "Default interface methods provide shared behavior without forcing every implementation to duplicate it.",
+        "Comparable defines natural ordering; Comparator defines external/custom ordering.",
+    ],
+    "java_equality_hashing": [
+        "== compares primitive values or object references; equals should compare meaningful object state.",
+        "equals must be reflexive, symmetric, transitive, consistent, and false for null.",
+        "If two objects are equal, hashCode must return the same value or hash-based collections break.",
+        "Comparable.compareTo should agree with equals when natural ordering and equality represent the same concept.",
+        "Comparator is safer when you need multiple sort orders for the same type.",
+    ],
+    "java_generics_hofs": [
+        "Generics let classes and methods work with a type parameter instead of Object casts.",
+        "Bounds such as <T extends Comparable<T>> let generic code rely on required behavior.",
+        "Wildcards express variance: ? extends T for producers, ? super T for consumers.",
+        "Functional interfaces represent one-method contracts that lambdas and method references can implement.",
+        "Streams create pipelines such as filter, map, and reduce, but they should still be readable and testable.",
+    ],
+    "java_recursive_lists": [
+        "Recursive data definitions describe a value in terms of a base case and a smaller value of the same shape.",
+        "A linked list node stores data plus a reference to the next node; recursive traversal follows next until null.",
+        "Insertion and deletion require careful pointer rewiring so no nodes are skipped or leaked conceptually.",
+        "An ADT interface should say what operations mean without exposing node internals.",
+        "ArrayList provides fast index access; LinkedList provides cheap local insert/remove but slower search.",
+    ],
+    "java_adts_collections": [
+        "ADTs define operations and behavior, while implementations choose arrays, links, trees, hashes, or heaps.",
+        "Stacks are LIFO, queues are FIFO, trees model hierarchy/order, and maps store key-value associations.",
+        "Java Collections separates interfaces (List, Set, Queue, Map) from implementations (ArrayList, HashMap, TreeSet, etc.).",
+        "Iterators provide uniform traversal and let containers hide their internal storage.",
+        "Collections utilities and streams are useful when they make intent clearer than manual loops.",
+    ],
+    "java_design_patterns": [
+        "A design pattern is a reusable solution shape for a recurring design problem, not code to copy blindly.",
+        "Factory and Builder help construct objects while hiding complicated creation logic.",
+        "Decorator and Adapter wrap objects to add behavior or translate interfaces.",
+        "Strategy, Observer, Iterator, Visitor, and Command separate behavior that changes from objects that use it.",
+        "These patterns appear when construction, variation, traversal, or event flow should stay independent from concrete classes.",
+        "The right pattern should reduce coupling or duplication; the wrong pattern adds ceremony.",
+    ],
+    "java_mvc": [
+        "MVC separates domain state (Model), presentation (View), and input/application flow (Controller).",
+        "The model should expose clear operations and avoid depending on console, GUI, or web details.",
+        "A controller translates user input into model calls and chooses what the view should render next.",
+        "A view displays state but should not own business rules.",
+        "Refactor toward MVC by extracting one responsibility at a time from a monolithic program.",
+    ],
+    "java_testing_debug_docs": [
+        "JUnit tests encode expected behavior with @Test methods, assertions, and setup/teardown when needed.",
+        "Boundary cases and equivalence partitions catch more bugs than only testing happy paths.",
+        "Black-box tests focus on public behavior; white-box tests use knowledge of implementation paths.",
+        "Breakpoints, stepping, and watch variables let you inspect runtime state instead of guessing.",
+        "Javadoc and Gradle make a project easier to understand, build, test, and share.",
+    ],
+    "java_big_o": [
+        "Big-O describes how work grows as input size grows, ignoring constant factors.",
+        "Common classes include O(1), O(log n), O(n), O(n log n), O(n^2), and O(2^n).",
+        "Nested loops, recursive branching, and ADT choices usually dominate complexity.",
+        "Space complexity counts extra memory such as arrays, recursion stack frames, and maps.",
+        "Divide-and-conquer splits a problem, solves subproblems, and combines results.",
+    ],
+    "java_uml": [
+        "A UML class diagram summarizes classes, fields, methods, and visibility without showing full code.",
+        "Inheritance, realization, composition, aggregation, and dependency arrows represent different relationships.",
+        "Interfaces can be shown separately so the diagram emphasizes contracts instead of implementations.",
+        "Composition means the whole strongly owns the parts; aggregation means a looser has-a relationship.",
+        "A useful diagram explains collaboration boundaries for a medium-sized program.",
+    ],
+    "java_packages_builds": [
+        "Packages group related classes and prevent name collisions across a project.",
+        "Import statements depend on package names, so directory layout and package declarations should match.",
+        "A coherent package exposes clear public interfaces and keeps implementation classes internal where possible.",
+        "JAR files bundle compiled classes and metadata; classpaths tell Java where dependencies live.",
+        "Build tools such as Gradle standardize source layout, dependencies, tests, and repeatable tasks.",
+    ],
+    "c_systems_linux": [
+        "Systems programming starts with the operating system: kernel services, user-space programs, files, processes, and permissions.",
+        "The Linux shell lets you navigate, inspect files, compose tools with pipes, redirect input/output, and configure environment variables.",
+        "gcc flags such as -Wall, -Wextra, -g, and -o make compiler feedback and debugging easier.",
+        "A Makefile records how files depend on each other so rebuilds are repeatable.",
+        "Terminal literacy matters because C systems work often happens outside an IDE.",
+    ],
+    "c_foundations_headers": [
+        "C has explicit primitive types and does not protect you from many invalid operations at runtime.",
+        "Header files declare interfaces; source files define implementation.",
+        "The preprocessor handles #include, #define, and include guards before the compiler sees normal C.",
+        "Function prototypes let one file call functions defined later or elsewhere.",
+        "printf and scanf require format specifiers that match the actual argument types.",
+    ],
+    "c_pointers_memory": [
+        "A pointer stores an address; dereferencing follows the address to read or write the pointed value.",
+        "Arrays and pointers are closely related, but arrays still have storage and size context you must track yourself.",
+        "Passing a pointer lets a function mutate caller-owned data, which is C's pass-by-reference pattern.",
+        "Pointer-to-pointer forms such as char **argv let a function update a pointer or walk arrays of strings.",
+        "Function pointers let you store callable behavior, such as callbacks or sort comparators.",
+        "malloc/calloc/realloc allocate heap memory; every successful allocation needs a matching free when ownership ends.",
+        "Valgrind helps find leaks, invalid reads/writes, double frees, and use-after-free bugs.",
+    ],
+    "c_structs_types": [
+        "struct groups fields into one custom record type.",
+        "typedef can give a struct a shorter name but should not hide pointer ownership rules.",
+        "Self-referential structs support linked lists, trees, and graphs by storing pointers to the same struct type.",
+        "Enums name integer states; unions let multiple fields share the same memory when only one is active.",
+        "Dynamically allocated structs need clear create/destroy functions to keep ownership explicit.",
+    ],
+    "c_debug_assembly": [
+        "gdb lets you set breakpoints, step by line or instruction, print variables, and inspect the call stack.",
+        "Assembly exposes registers, moves, arithmetic, comparisons, jumps, calls, and returns generated from C.",
+        "The CPU repeatedly fetches, decodes, and executes instructions.",
+        "Registers are tiny fast storage locations; memory is addressed through loads and stores.",
+        "Reading simple assembly helps explain undefined behavior, stack frames, and optimization surprises.",
+    ],
+    "c_compilers_linkers": [
+        "The C build pipeline preprocesses, compiles to assembly, assembles to object files, and links into an executable.",
+        "Object files contain compiled code plus symbols that the linker resolves across files and libraries.",
+        "Static linking copies library code into the executable; dynamic linking loads shared libraries at runtime.",
+        "Name resolution fails when declarations, definitions, or linker inputs disagree.",
+        "Separate compilation keeps large C programs modular but requires accurate headers and build rules.",
+    ],
+    "c_processes_memory": [
+        "A process is a running program with its own virtual address space and OS-managed state.",
+        "C program memory is commonly described as text, data, BSS, heap, and stack segments.",
+        "Each function call creates a stack frame for return address, saved state, parameters, and locals.",
+        "The memory hierarchy moves from registers to cache to RAM to disk, with latency increasing at each level.",
+        "Virtual memory maps pages through page tables so each process sees a private address space.",
+        "Spatial and temporal locality explain why contiguous arrays often outperform pointer-heavy structures.",
+    ],
+    "c_concurrency_threads": [
+        "Threads share a process address space, so communication is easy and accidental races are also easy.",
+        "pthread_create starts work in a new thread; pthread_join waits for it to finish.",
+        "A race condition occurs when correctness depends on unpredictable timing between threads.",
+        "Mutexes protect critical sections so only one thread mutates shared state at a time.",
+        "Producer-consumer designs use locks or condition variables to coordinate handoff between threads.",
+        "Deadlock can happen when threads hold locks while waiting for locks held by each other.",
+    ],
+    "c_networking_sockets": [
+        "Networking code usually models clients connecting to servers over IP addresses and ports.",
+        "TCP provides reliable byte streams; UDP sends datagrams without the same delivery guarantees.",
+        "A server socket binds, listens, accepts a connection, then sends/receives bytes.",
+        "A client socket connects to a server, then uses send and recv to exchange data.",
+        "Socket code must handle partial reads/writes, errors, and resource cleanup.",
+    ],
+    "c_linked_lists_deep": [
+        "Linked list operations are pointer rewrites: insert, delete, search, traverse, and free.",
+        "Head/tail insertions need different edge-case handling when the list is empty.",
+        "Deletion must reconnect neighbors before freeing the removed node.",
+        "Doubly linked lists trade extra memory for easier backward traversal and deletion.",
+        "Generic lists with void* require clear ownership and casting rules.",
+    ],
+    "c_stacks_queues": [
+        "A stack supports push, pop, and peek with LIFO behavior.",
+        "A queue supports enqueue and dequeue with FIFO behavior.",
+        "Array-backed ADTs need capacity checks and sometimes circular indexing.",
+        "Linked implementations grow flexibly but allocate one node per item.",
+        "Stacks support expression evaluation; queues support BFS and producer-consumer buffering.",
+    ],
+    "c_algorithm_analysis_formal": [
+        "Big-O is an upper bound, Big-Omega is a lower bound, and Big-Theta is a tight bound.",
+        "Loop analysis depends on how many times each statement runs as n grows.",
+        "Recursive algorithms can be described with recurrences such as T(n)=2T(n/2)+n.",
+        "Substitution, recursion trees, and the Master theorem are ways to solve recurrences.",
+        "Best case, worst case, and average case describe different input scenarios for the same algorithm.",
+        "Amortized analysis explains average cost over a sequence of operations, not random average case.",
+    ],
+    "c_quadratic_sorts": [
+        "Selection sort repeatedly selects the smallest remaining item and places it in final position.",
+        "Insertion sort builds a sorted prefix and is efficient on nearly sorted data.",
+        "Bubble sort repeatedly swaps adjacent inverted pairs; early exit stops when no swaps occur.",
+        "Stable sorts preserve the relative order of equal keys.",
+        "In-place algorithms use only small extra memory beyond the input array.",
+    ],
+    "c_nlogn_sorts_proofs": [
+        "Merge sort divides the array, sorts halves, then merges into sorted order.",
+        "Quicksort partitions around a pivot; pivot choice controls worst-case risk.",
+        "Comparison sorting has a lower bound of Omega(n log n) in the general case.",
+        "Loop invariants state what remains true before and after each loop iteration.",
+        "Correctness proofs connect invariants, termination, and postconditions.",
+    ],
+    "c_trees_heaps": [
+        "Binary tree nodes store a value and left/right child pointers.",
+        "Tree traversals include inorder, preorder, postorder, and level-order BFS.",
+        "BST search, insert, and delete rely on the invariant left < node < right.",
+        "Heaps keep the min or max at the root while allowing efficient insert and extract.",
+        "Heap sort builds a heap then repeatedly extracts the next ordered item.",
+    ],
+    "c_hash_tables": [
+        "A hash function maps keys to bucket indexes and should spread typical keys evenly.",
+        "Chaining stores collisions in bucket lists; open addressing probes for another slot.",
+        "Load factor measures how full the table is and guides resizing.",
+        "Average lookup can be O(1), but poor hashing or high load can degrade to O(n).",
+        "A C hash map must handle key ownership, equality, collision storage, and cleanup.",
+    ],
+    "c_graph_algorithms": [
+        "Graphs can be represented as adjacency matrices or adjacency lists.",
+        "BFS explores by distance layers and gives shortest paths in unweighted graphs.",
+        "DFS explores deeply and supports cycle checks, connected components, and topological sort.",
+        "Topological sort orders a DAG so every edge goes from earlier to later in the output.",
+        "Dijkstra computes shortest paths when edge weights are nonnegative.",
+        "Minimum spanning tree algorithms such as Prim and Kruskal connect weighted undirected graphs cheaply.",
+    ],
+    "c_greedy": [
+        "Greedy algorithms make the locally best choice and never revisit it.",
+        "They are correct only when the problem has a greedy choice property and optimal substructure.",
+        "Activity selection and fractional knapsack are classic successful greedy examples.",
+        "Huffman coding uses greedy merging to build optimal prefix codes.",
+        "A proof of greedy correctness often uses exchange arguments or contradiction-style reasoning.",
+        "Counterexamples are essential because many problems look greedy but require DP or search.",
+    ],
+    "c_dynamic_programming_deep": [
+        "DP applies when subproblems overlap and optimal solutions contain optimal substructure.",
+        "Memoization solves recursively and caches answers; tabulation fills a table bottom-up.",
+        "A good DP solution defines state, recurrence, base cases, iteration order, and answer extraction.",
+        "Coin change, 0/1 knapsack, and LCS show different state shapes.",
+        "Space optimization keeps only the rows or states needed for future transitions.",
+    ],
+    "c_recursion_divide_conquer": [
+        "Every recursive function needs a base case, recursive case, and progress toward termination.",
+        "C recursion uses stack frames, so deep recursion can overflow the stack.",
+        "Divide-and-conquer splits a problem, solves independent subproblems, and combines their answers.",
+        "Merge sort, quicksort, binary search, and fast exponentiation all fit this pattern.",
+        "Tail recursion can often be rewritten as iteration when stack use matters.",
+    ],
+    "python_environment": [
+        "Python can run interactively in a REPL or from script files, which makes experimentation fast.",
+        "Names are dynamically typed: the value has a type, and the name can later refer to another type.",
+        "Numeric types include int, float, and complex; / produces true division and // produces floor division.",
+        "Strings support slicing, f-strings, common methods, and Unicode text by default.",
+        "Truthiness, None, comments, and docstrings are basic tools for readable Python programs.",
+    ],
+    "python_control_flow_deep": [
+        "if/elif/else branches are driven by booleans and truthy/falsy values.",
+        "for loops iterate over ranges, strings, lists, dictionaries, files, and any iterable.",
+        "while loops continue until their condition becomes false, so loop state must change.",
+        "break exits, continue skips, and pass is an explicit placeholder.",
+        "match-case can express structural pattern matching for fixed shapes and tagged data.",
+    ],
+    "python_functions_scope": [
+        "Python functions can use positional arguments, keyword arguments, defaults, *args, and **kwargs.",
+        "The LEGB rule resolves names through local, enclosing, global, and built-in scopes.",
+        "Closures capture variables from an enclosing function so inner functions can remember state.",
+        "Lambdas create small anonymous functions, usually for callbacks or key functions.",
+        "Higher-order functions accept or return functions, such as map, filter, and sorted(key=...).",
+        "Type hints document intended types and help tools, but Python still checks most types at runtime.",
+    ],
+    "python_builtin_data_structures": [
+        "Lists are mutable ordered sequences; tuples are ordered and usually immutable.",
+        "Dictionaries map keys to values and preserve insertion order in modern Python.",
+        "Sets store unique items and support union, intersection, and difference.",
+        "Comprehensions build lists, dicts, and sets from compact loop/filter expressions, and generator expressions stay lazy.",
+        "Shallow copies duplicate the outer container; deep copies recursively copy nested objects.",
+    ],
+    "python_text_processing": [
+        "String methods such as split, join, strip, replace, and find solve many parsing tasks without regex.",
+        "f-strings are the standard readable way to interpolate values into text.",
+        "The re module supports matching, searching, findall, and substitution with regular expressions.",
+        "ASCII is a small character set; UTF-8 can encode all Unicode characters and is the default expectation for most modern text.",
+        "Text pipelines should be explicit about encoding when reading files from unknown sources.",
+    ],
+    "python_file_io_data": [
+        "Use with open(...) as f so files close even when an exception occurs.",
+        "Text files decode bytes into str; binary files read and write raw bytes.",
+        "The csv module handles commas, quotes, and rows better than manual splitting.",
+        "json.loads and json.dumps convert between JSON text and Python data.",
+        "sys.argv is raw command-line input; argparse gives typed options, help text, and validation.",
+    ],
+    "python_error_handling": [
+        "try/except handles expected failures without crashing the whole program.",
+        "else runs only when no exception occurred; finally runs for cleanup either way.",
+        "Common exceptions include ValueError, TypeError, KeyError, IndexError, and FileNotFoundError.",
+        "raise reports a failure intentionally, and custom exception classes make domain errors clearer.",
+        "assert is useful for internal sanity checks, not for validating user input in production.",
+    ],
+    "python_oop_deep": [
+        "__init__ initializes each instance, and self names the current object.",
+        "Class variables are shared by the class; instance variables belong to one object.",
+        "Dunder methods such as __str__, __repr__, __eq__, __hash__, and __lt__ integrate objects with Python syntax.",
+        "Inheritance and super reuse behavior, while multiple inheritance follows the method resolution order.",
+        "@property, dataclasses, and abstract base classes from abc help express clean object APIs.",
+    ],
+    "python_iterators_generators_decorators": [
+        "The iterator protocol uses __iter__ and __next__ so objects can work in for loops.",
+        "A generator function uses yield to produce values lazily without building a full list.",
+        "Generator expressions are lazy versions of list comprehensions.",
+        "Decorators wrap functions with extra behavior while keeping the call site unchanged.",
+        "Context managers define __enter__ and __exit__, or use contextlib, to manage setup and cleanup.",
+    ],
+    "python_modules_packages_envs": [
+        "The interpreter, scripts, and IDEs are all normal ways to run Python during development.",
+        "import and from ... import bring module names into the current file.",
+        "Packages are directories with Python modules and often an __init__.py file.",
+        "Virtual environments isolate installed packages so projects do not break each other.",
+        "requirements.txt records dependencies; pip installs them into the active environment.",
+        "if __name__ == '__main__' keeps script behavior separate from import behavior.",
+    ],
+    "python_testing": [
+        "unittest organizes tests into classes with assertions and optional setUp/tearDown methods.",
+        "pytest favors simple test functions, powerful assertions, fixtures, and parametrization.",
+        "TDD writes a failing test first, then implements the smallest code that passes.",
+        "Mocks replace slow or external dependencies so tests stay focused and repeatable.",
+        "Coverage helps reveal untested code paths but does not prove the assertions are meaningful.",
+    ],
+    "python_ai_ml_readiness": [
+        "NumPy arrays support vectorized numeric operations and broadcasting across shapes.",
+        "Pandas Series and DataFrames make tabular cleaning, filtering, grouping, and CSV loading productive.",
+        "Matplotlib and Seaborn help inspect distributions, trends, and model results visually.",
+        "Jupyter notebooks are useful for exploration, but production logic should move into tested modules.",
+        "AI engineering also needs API calls with requests and basic awareness of async workflows.",
+    ],
+})
+
+
+PRACTICE_TASKS.update({
+    "java_language_foundations": "Write a Java class that declares one primitive, one final constant, one StringBuilder, one array, and one safe widening cast. Print each result.",
+    "java_control_flow": "Write a Java method that takes an int score and returns a letter grade using if/else or switch. Add a loop that prints a state table for scores 0, 25, 50, 75, 100.",
+    "java_methods_contracts": "Write a Java method with a purpose comment, precondition, postcondition, parameters, return value, and one recursive helper.",
+    "java_classes_constructors": "Create a BankAccount class with private balance, overloaded constructors, deposit, withdraw, and toString. Use this where field and parameter names match.",
+    "java_enums_exceptions": "Create an enum OrderStatus and a method that throws IllegalArgumentException for invalid transitions. Catch it in main and print a useful message.",
+    "java_encapsulation_invariants": "Design an immutable Range class whose constructor rejects end < start and whose methods never expose mutable internal state.",
+    "java_inheritance_polymorphism": "Create Shape, Circle, and Rectangle classes. Override area(), store them in a Shape[] array, and show dynamic dispatch in a loop.",
+    "java_abstract_interfaces": "Define a Payable interface and an abstract Employee class. Implement two employee types and sort them with a Comparator.",
+    "java_equality_hashing": "Create a Student class and override equals and hashCode based on id. Add two equal students to a HashSet and show only one remains.",
+    "java_generics_hofs": "Write a generic max method for Comparable values, then use a stream pipeline to filter, map, and reduce a list of numbers.",
+    "java_recursive_lists": "Define a ListNode class and a ListADT interface. Implement recursive size() and iterative append() for a singly linked list.",
+    "java_adts_collections": "Solve one small task three ways: Stack/Deque for reverse order, Queue for FIFO order, and Map for counting keys.",
+    "java_design_patterns": "Implement Strategy for two discount rules, then briefly identify where Factory or Decorator would fit in the same program.",
+    "java_mvc": "Split a tiny counter app into CounterModel, CounterView, and CounterController classes with no printing inside the model.",
+    "java_testing_debug_docs": "Write a JUnit-style test plan for BankAccount: normal deposit, overdraft boundary, negative input, and toString output. Include one Javadoc comment.",
+    "java_big_o": "For three Java snippets you write (single loop, nested loop, binary search), add comments with time and space complexity.",
+    "java_uml": "Write a text UML sketch for a Library system with Book, Member, Loan, and LoanRepository. Include visibility and relationships.",
+    "java_packages_builds": "Sketch a Java project layout with packages model, view, controller, and test. Include one import and one Gradle dependency line.",
+    "c_systems_linux": "Write the shell commands to create hello.c, compile it with gcc -Wall -Wextra -g -o hello hello.c, run it, and redirect output to out.txt.",
+    "c_foundations_headers": "Create a tiny two-file C program: math_utils.h declares add(), math_utils.c defines it, and main.c calls it with printf.",
+    "c_pointers_memory": "Write a C function increment(int *p), allocate an int with malloc, call increment, print the value, then free it.",
+    "c_structs_types": "Define a typedef struct Student with name and id, allocate one Student, fill fields, print it, and free it.",
+    "c_debug_assembly": "Write a short C loop and list the gdb commands to break at main, step, print the loop variable, and inspect the backtrace.",
+    "c_compilers_linkers": "Write commands that compile main.c and util.c into .o files, link them into app, then explain which step resolves symbols.",
+    "c_processes_memory": "Draw or write a labeled memory map for one C program showing text, data, BSS, heap, stack, and one variable in each where possible.",
+    "c_concurrency_threads": "Write a pthread counter example guarded by a mutex. Include the race that would occur if the lock were removed.",
+    "c_networking_sockets": "Sketch the server-side socket call order: socket, bind, listen, accept, recv, send, close. Add one line describing the client connect path.",
+    "c_linked_lists_deep": "Implement insert_head, search, delete_value, print_list, and free_list for a singly linked list of ints.",
+    "c_stacks_queues": "Implement either an array stack with capacity checks or a circular-array queue with wraparound indexes.",
+    "c_algorithm_analysis_formal": "Analyze one nested loop and one recurrence. State Big-O, Big-Omega, Big-Theta, and the reasoning.",
+    "c_quadratic_sorts": "Implement insertion sort in C and add comments tracing how the sorted prefix grows on [5, 2, 4, 1].",
+    "c_nlogn_sorts_proofs": "Implement merge sort or quicksort in C and write a loop invariant for the merge or partition step.",
+    "c_trees_heaps": "Implement BST search and insert, then describe how a min-heap would store the same values in an array.",
+    "c_hash_tables": "Build a small chained hash table for string keys with insert and search. Track load factor after each insert.",
+    "c_graph_algorithms": "Represent a graph with adjacency lists and implement BFS that prints distance from a start node.",
+    "c_greedy": "Implement activity selection after sorting intervals by finish time. Add one counterexample where a different greedy rule fails.",
+    "c_dynamic_programming_deep": "Implement bottom-up coin change or LCS in C. Name the state, recurrence, base cases, and table order.",
+    "c_recursion_divide_conquer": "Write recursive binary search in C, then rewrite it iteratively and compare stack usage.",
+    "python_environment": "Write a Python script that demonstrates int, float, complex, / vs //, f-strings, truthiness, None, and a module docstring.",
+    "python_control_flow_deep": "Write a Python program that uses if/elif/else, for/range, while, break, continue, pass, and match-case on a simple command string.",
+    "python_functions_scope": "Write a function summarize(*nums, scale=1, **labels), use a lambda as sorted(key=...), and add type hints.",
+    "python_builtin_data_structures": "Use a list comprehension, dict comprehension, set operation, tuple unpacking, and a shallow-copy example in one short script.",
+    "python_text_processing": "Parse a comma-separated sentence using split/strip, rebuild it with join, then use re.findall to extract numbers.",
+    "python_file_io_data": "Read a CSV file, convert rows to dictionaries, write JSON output, and add argparse for input/output paths.",
+    "python_error_handling": "Write a safe_int function that catches ValueError, raises a custom InvalidAgeError for negative values, and uses finally for cleanup text.",
+    "python_oop_deep": "Create a @dataclass Point with __str__, __eq__, __lt__, a @property, and an abstract Shape base class.",
+    "python_iterators_generators_decorators": "Write a countdown generator, a timing/logging decorator with functools.wraps, and a context manager using contextlib.",
+    "python_modules_packages_envs": "Sketch a package layout with __init__.py, a main guard, requirements.txt, and commands to create/activate a venv.",
+    "python_testing": "Write pytest tests with one fixture, one parametrize case, and one mock for a function that calls an external API.",
+    "python_ai_ml_readiness": "Load a CSV into Pandas, compute one groupby summary, convert one column to a NumPy array, and plot a simple chart.",
+})
+
+
+QUIZ_BY_TOPIC.update({
+    "java_language_foundations": ("What Java keyword marks a variable as a constant after assignment?", ["final"]),
+    "java_control_flow": ("What loop form always runs its body at least once?", ["do while", "do-while"]),
+    "java_methods_contracts": ("What does void mean in a Java method signature?", ["no return value", "returns nothing"]),
+    "java_classes_constructors": ("What keyword refers to the current Java object?", ["this"]),
+    "java_enums_exceptions": ("Are checked exceptions required to be caught or declared?", ["yes", "caught or declared"]),
+    "java_encapsulation_invariants": ("What is a rule that must remain true for an object called?", ["invariant", "class invariant"]),
+    "java_inheritance_polymorphism": ("What chooses the overridden method based on the runtime object?", ["dynamic dispatch", "runtime polymorphism"]),
+    "java_abstract_interfaces": ("What Java construct defines a behavior contract implemented by classes?", ["interface"]),
+    "java_equality_hashing": ("If equals says two objects are equal, what method must agree?", ["hashcode", "hashCode"]),
+    "java_generics_hofs": ("What Java feature lets a class use a type parameter like T?", ["generics", "generic"]),
+    "java_recursive_lists": ("What value usually marks the end of a linked list in Java?", ["null"]),
+    "java_adts_collections": ("Which Java collection interface stores key-value pairs?", ["map"]),
+    "java_design_patterns": ("Which pattern swaps interchangeable algorithms behind one interface?", ["strategy"]),
+    "java_mvc": ("In MVC, which part owns domain state and rules?", ["model"]),
+    "java_testing_debug_docs": ("What Java testing framework commonly uses @Test?", ["junit"]),
+    "java_big_o": ("What complexity class describes binary search?", ["o log n", "log n", "O(log n)"]),
+    "java_uml": ("In UML, what relationship represents a strong whole-part ownership?", ["composition"]),
+    "java_packages_builds": ("What Java declaration groups a class into a namespace?", ["package"]),
+    "c_systems_linux": ("What gcc flag includes debug symbols for gdb?", ["-g", "g"]),
+    "c_foundations_headers": ("What file type usually declares C function prototypes?", ["header", ".h", "h file"]),
+    "c_pointers_memory": ("What C function releases heap memory?", ["free"]),
+    "c_structs_types": ("What C keyword groups fields into a custom record?", ["struct"]),
+    "c_debug_assembly": ("What debugger is commonly used for C programs on Linux?", ["gdb"]),
+    "c_compilers_linkers": ("What build stage resolves symbols across object files?", ["linking", "linker"]),
+    "c_processes_memory": ("Which memory region grows and shrinks as functions call and return?", ["stack"]),
+    "c_concurrency_threads": ("What pthread primitive protects a critical section?", ["mutex", "pthread_mutex"]),
+    "c_networking_sockets": ("Which server socket call waits for an incoming client connection?", ["accept"]),
+    "c_linked_lists_deep": ("What must you do to every heap-allocated linked-list node when done?", ["free it", "free", "deallocate"]),
+    "c_stacks_queues": ("Which ADT removes the oldest inserted item first?", ["queue"]),
+    "c_algorithm_analysis_formal": ("What notation gives a tight asymptotic bound?", ["theta", "big theta", "Big-Theta"]),
+    "c_quadratic_sorts": ("Which quadratic sort is often efficient on nearly sorted data?", ["insertion sort"]),
+    "c_nlogn_sorts_proofs": ("What proof tool states what remains true each loop iteration?", ["loop invariant", "invariant"]),
+    "c_trees_heaps": ("What BST invariant compares values in the left subtree to the node?", ["left less than node", "left < node", "smaller"]),
+    "c_hash_tables": ("What hash-table metric usually triggers resizing?", ["load factor"]),
+    "c_graph_algorithms": ("Which graph algorithm finds shortest paths in unweighted graphs?", ["bfs", "breadth first search"]),
+    "c_greedy": ("What property justifies making a locally optimal choice?", ["greedy choice property"]),
+    "c_dynamic_programming_deep": ("What DP approach fills a table from base cases upward?", ["tabulation", "bottom up", "bottom-up"]),
+    "c_recursion_divide_conquer": ("What three steps describe divide-and-conquer?", ["divide conquer combine", "divide, conquer, combine"]),
+    "python_environment": ("What Python value represents no value?", ["none"]),
+    "python_control_flow_deep": ("What Python statement is an explicit no-op placeholder?", ["pass"]),
+    "python_functions_scope": ("What acronym describes Python name lookup order?", ["legb"]),
+    "python_builtin_data_structures": ("Which Python built-in stores unique items?", ["set"]),
+    "python_text_processing": ("What Python module provides regular expressions?", ["re"]),
+    "python_file_io_data": ("What statement should you use so files close automatically?", ["with", "context manager"]),
+    "python_error_handling": ("What keyword intentionally raises an exception?", ["raise"]),
+    "python_oop_deep": ("What method initializes a Python object?", ["__init__", "init"]),
+    "python_iterators_generators_decorators": ("What keyword makes a generator function produce values lazily?", ["yield"]),
+    "python_modules_packages_envs": ("What file commonly records Python package dependencies?", ["requirements.txt", "requirements"]),
+    "python_testing": ("What pytest feature supplies reusable test setup?", ["fixture", "fixtures"]),
+    "python_ai_ml_readiness": ("What Pandas object represents a table of rows and columns?", ["dataframe", "data frame"]),
+})
+
+
+AUDIT_EXAMPLE_SNIPPETS = {
+    "java": {
+        "java_language_foundations": _clean_snippet("""
+            import java.util.*;
+            public class Main {
+                public static void main(String[] args) {
+                    final int MAX = 3;              // constant
+                    int count = 2;                  // primitive
+                    double widened = count;         // widening cast is safe
+                    StringBuilder sb = new StringBuilder("AI");
+                    int[] scores = {90, 95, 100};   // array reference
+                    System.out.println(sb.append("/ML") + " " + widened + " " + scores[MAX - 1]);
+                }
+            }
+        """),
+        "java_control_flow": _clean_snippet("""
+            int score = 82;
+            String grade = switch (score / 10) {
+                case 10, 9 -> "A";
+                case 8 -> "B";
+                default -> "review";
+            };
+            for (int i = 0; i < 3; i++) {           // trace i: 0, 1, 2
+                if (i == 1) continue;               // skip one pass
+                System.out.println(grade + " " + i);
+            }
+        """),
+        "java_methods_contracts": _clean_snippet("""
+            /** Returns n!, precondition: n >= 0, postcondition: result >= 1. */
+            static int factorial(int n) {
+                if (n <= 1) return 1;               // base case
+                return n * factorial(n - 1);        // recursive case
+            }
+        """),
+        "java_classes_constructors": _clean_snippet("""
+            class BankAccount {
+                private int balance;
+                BankAccount() { this(0); }
+                BankAccount(int balance) { this.balance = balance; }
+                void deposit(int amount) { balance += amount; }
+                public String toString() { return "balance=" + balance; }
+            }
+        """),
+        "java_enums_exceptions": _clean_snippet("""
+            enum Status { NEW, PAID, SHIPPED }
+            static Status ship(Status s) {
+                if (s != Status.PAID) throw new IllegalStateException("pay first");
+                return Status.SHIPPED;
+            }
+        """),
+        "java_encapsulation_invariants": _clean_snippet("""
+            final class Range {
+                private final int start, end;        // invariant: start <= end
+                Range(int start, int end) {
+                    if (end < start) throw new IllegalArgumentException();
+                    this.start = start; this.end = end;
+                }
+                boolean contains(int x) { return start <= x && x <= end; }
+            }
+        """),
+        "java_inheritance_polymorphism": _clean_snippet("""
+            abstract class Shape { abstract double area(); }
+            class Circle extends Shape {
+                double r; Circle(double r) { this.r = r; }
+                @Override double area() { return Math.PI * r * r; }
+            }
+            Shape s = new Circle(2);                // upcast
+            System.out.println(s.area());           // dynamic dispatch
+        """),
+        "java_abstract_interfaces": _clean_snippet("""
+            interface Payable { int pay(); }
+            abstract class Employee implements Payable { String name; }
+            class Hourly extends Employee {
+                int hours, rate;
+                public int pay() { return hours * rate; }
+            }
+        """),
+        "java_equality_hashing": _clean_snippet("""
+            class Student {
+                final int id;
+                Student(int id) { this.id = id; }
+                public boolean equals(Object o) {
+                    return o instanceof Student s && id == s.id;
+                }
+                public int hashCode() { return Integer.hashCode(id); }
+            }
+        """),
+        "java_generics_hofs": _clean_snippet("""
+            static <T extends Comparable<T>> T max(T a, T b) {
+                return a.compareTo(b) >= 0 ? a : b;
+            }
+            int total = java.util.List.of(1, 2, 3).stream()
+                .filter(n -> n % 2 == 1).map(n -> n * n).reduce(0, Integer::sum);
+        """),
+        "java_recursive_lists": _clean_snippet("""
+            interface IntList { int size(); }
+            class Node implements IntList {
+                int value; IntList rest;
+                Node(int value, IntList rest) { this.value = value; this.rest = rest; }
+                public int size() { return 1 + rest.size(); }
+            }
+            class Empty implements IntList { public int size() { return 0; } }
+        """),
+        "java_adts_collections": _clean_snippet("""
+            Deque<Integer> stack = new ArrayDeque<>();
+            Queue<Integer> queue = new ArrayDeque<>();
+            Map<String, Integer> counts = new HashMap<>();
+            stack.push(1); queue.add(1);
+            counts.put("ai", counts.getOrDefault("ai", 0) + 1);
+        """),
+        "java_design_patterns": _clean_snippet("""
+            interface DiscountStrategy { int apply(int cents); }
+            class NoDiscount implements DiscountStrategy {
+                public int apply(int cents) { return cents; }
+            }
+            class HalfOff implements DiscountStrategy {
+                public int apply(int cents) { return cents / 2; }
+            }
+        """),
+        "java_mvc": _clean_snippet("""
+            class CounterModel { private int n; void inc() { n++; } int value() { return n; } }
+            class CounterView { String render(int n) { return "Count: " + n; } }
+            class CounterController {
+                CounterModel model; CounterView view;
+                String click() { model.inc(); return view.render(model.value()); }
+            }
+        """),
+        "java_testing_debug_docs": _clean_snippet("""
+            import org.junit.jupiter.api.Test;
+            import static org.junit.jupiter.api.Assertions.*;
+            class BankAccountTest {
+                @Test void depositIncreasesBalance() {
+                    BankAccount account = new BankAccount(10);
+                    account.deposit(5);
+                    assertEquals("balance=15", account.toString());
+                }
+            }
+        """),
+        "java_big_o": _clean_snippet("""
+            // O(log n) time, O(1) extra space.
+            static boolean binarySearch(int[] a, int target) {
+                int lo = 0, hi = a.length - 1;
+                while (lo <= hi) {
+                    int mid = (lo + hi) / 2;
+                    if (a[mid] == target) return true;
+                    if (a[mid] < target) lo = mid + 1; else hi = mid - 1;
+                }
+                return false;
+            }
+        """),
+        "java_uml": _clean_snippet("""
+            // UML text sketch:
+            // Library *-- Book
+            // Member --> Loan
+            // LoanRepository ..> Loan
+            // + public, - private, # protected
+        """),
+        "java_packages_builds": _clean_snippet("""
+            // src/main/java/program/model/CounterModel.java
+            package program.model;
+            import java.util.Objects;
+            // Gradle dependency example:
+            // testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+        """),
+    },
+    "c": {
+        "c_systems_linux": _clean_snippet("""
+            $ cat > hello.c
+            #include <stdio.h>
+            int main(void) { printf("hello\\n"); return 0; }
+            $ gcc -Wall -Wextra -g -o hello hello.c
+            $ ./hello > out.txt
+        """),
+        "c_foundations_headers": _clean_snippet("""
+            /* math_utils.h */
+            #ifndef MATH_UTILS_H
+            #define MATH_UTILS_H
+            int add(int a, int b);
+            #endif
+            /* main.c calls add(2, 3) and prints with printf("%d\\n", result). */
+        """),
+        "c_pointers_memory": _clean_snippet("""
+            void increment(int *p) { (*p)++; }
+            int *value = malloc(sizeof *value);
+            *value = 41;
+            increment(value);
+            printf("%d\\n", *value);   /* 42 */
+            free(value);
+        """),
+        "c_structs_types": _clean_snippet("""
+            typedef struct Node {
+                int value;
+                struct Node *next;
+            } Node;
+            Node *n = malloc(sizeof *n);
+            n->value = 1; n->next = NULL;
+            free(n);
+        """),
+        "c_debug_assembly": _clean_snippet("""
+            $ gdb ./app
+            (gdb) break main
+            (gdb) run
+            (gdb) next
+            (gdb) print i
+            (gdb) disassemble /m main
+        """),
+        "c_compilers_linkers": _clean_snippet("""
+            $ gcc -E main.c -o main.i      # preprocess
+            $ gcc -S main.i -o main.s      # compile to assembly
+            $ gcc -c main.s -o main.o      # assemble
+            $ gcc main.o util.o -o app     # link symbols into executable
+        """),
+        "c_processes_memory": _clean_snippet("""
+            int global_count;              /* BSS */
+            int initialized = 3;           /* data */
+            int main(void) {
+                int local = 1;             /* stack */
+                int *heap = malloc(sizeof *heap); /* heap */
+                free(heap);
+            }
+        """),
+        "c_concurrency_threads": _clean_snippet("""
+            pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+            int counter = 0;
+            void *worker(void *arg) {
+                pthread_mutex_lock(&lock);
+                counter++;
+                pthread_mutex_unlock(&lock);
+                return NULL;
+            }
+        """),
+        "c_networking_sockets": _clean_snippet("""
+            int fd = socket(AF_INET, SOCK_STREAM, 0);
+            bind(fd, (struct sockaddr *)&addr, sizeof addr);
+            listen(fd, 8);
+            int client = accept(fd, NULL, NULL);
+            recv(client, buffer, sizeof buffer, 0);
+            send(client, "ok", 2, 0);
+        """),
+        "c_linked_lists_deep": _clean_snippet("""
+            Node *insert_head(Node *head, int value) {
+                Node *n = malloc(sizeof *n);
+                n->value = value;
+                n->next = head;
+                return n;
+            }
+        """),
+        "c_stacks_queues": _clean_snippet("""
+            typedef struct { int items[8]; int top; } Stack;
+            int push(Stack *s, int x) {
+                if (s->top == 8) return 0;
+                s->items[s->top++] = x;
+                return 1;
+            }
+        """),
+        "c_algorithm_analysis_formal": _clean_snippet("""
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                    work();
+            /* n*n calls, so time is O(n^2), Omega(n^2), and Theta(n^2). */
+        """),
+        "c_quadratic_sorts": _clean_snippet("""
+            for (int i = 1; i < n; i++) {
+                int x = a[i], j = i - 1;
+                while (j >= 0 && a[j] > x) { a[j + 1] = a[j]; j--; }
+                a[j + 1] = x;             /* insertion sort */
+            }
+        """),
+        "c_nlogn_sorts_proofs": _clean_snippet("""
+            int partition(int a[], int lo, int hi) {
+                int pivot = a[hi], i = lo;
+                for (int j = lo; j < hi; j++)
+                    if (a[j] <= pivot) swap(&a[i++], &a[j]);
+                swap(&a[i], &a[hi]);
+                return i;
+            }
+        """),
+        "c_trees_heaps": _clean_snippet("""
+            typedef struct Node { int key; struct Node *left, *right; } Node;
+            Node *search(Node *root, int key) {
+                if (!root || root->key == key) return root;
+                return key < root->key ? search(root->left, key)
+                                       : search(root->right, key);
+            }
+        """),
+        "c_hash_tables": _clean_snippet("""
+            unsigned hash(const char *s) {
+                unsigned h = 5381;
+                while (*s) h = h * 33u + (unsigned char)*s++;
+                return h;
+            }
+            /* bucket = hash(key) % capacity; collisions go in a linked list. */
+        """),
+        "c_graph_algorithms": _clean_snippet("""
+            int graph[4][4] = {{0,1,1,0},{0,0,0,1},{0,0,0,1},{0,0,0,0}};
+            int queue[4], front = 0, back = 0, seen[4] = {1,0,0,0};
+            queue[back++] = 0;             /* BFS starts at node 0 */
+        """),
+        "c_greedy": _clean_snippet("""
+            typedef struct { int start, finish; } Activity;
+            /* Sort by finish time, then choose the next activity whose start
+               is >= the finish time of the last chosen activity. */
+        """),
+        "c_dynamic_programming_deep": _clean_snippet("""
+            int dp[amount + 1];
+            dp[0] = 0;
+            for (int x = 1; x <= amount; x++) dp[x] = INF;
+            for (int x = 1; x <= amount; x++)
+                for (int i = 0; i < coin_count; i++)
+                    if (coins[i] <= x) dp[x] = min(dp[x], 1 + dp[x - coins[i]]);
+        """),
+        "c_recursion_divide_conquer": _clean_snippet("""
+            int binary_search(int a[], int lo, int hi, int target) {
+                if (lo > hi) return -1;
+                int mid = (lo + hi) / 2;
+                if (a[mid] == target) return mid;
+                if (a[mid] < target) return binary_search(a, mid + 1, hi, target);
+                return binary_search(a, lo, mid - 1, target);
+            }
+        """),
+    },
+    "python": {
+        "python_environment": _clean_snippet("""
+            \"\"\"Small script demonstrating Python basics.\"\"\"
+            n = 7
+            ratio = 7 / 2
+            floor = 7 // 2
+            name = "Ryu"
+            print(f"{name}: {n}, {ratio}, {floor}, truthy={bool(name)}, none={None}")
+        """),
+        "python_control_flow_deep": _clean_snippet("""
+            command = "run"
+            match command:
+                case "run":
+                    for i in range(5):
+                        if i == 2: continue
+                        if i == 4: break
+                        print(i)
+                case _:
+                    pass
+        """),
+        "python_functions_scope": _clean_snippet("""
+            def summarize(*nums: int, scale: int = 1, **labels: str) -> int:
+                total = sum(nums) * scale
+                print(labels.get("name", "total"), total)
+                return total
+            words = sorted(["pear", "fig", "apple"], key=lambda w: len(w))
+        """),
+        "python_builtin_data_structures": _clean_snippet("""
+            squares = [n*n for n in range(5)]
+            index = {value: i for i, value in enumerate(squares)}
+            evens = {n for n in squares if n % 2 == 0}
+            first, *rest = squares
+            shallow = [rest, evens].copy()
+        """),
+        "python_text_processing": _clean_snippet("""
+            import re
+            raw = " name: Ryu, score: 42 "
+            parts = [p.strip() for p in raw.split(",")]
+            print(" | ".join(parts))
+            print(re.findall(r"\\d+", raw))
+        """),
+        "python_file_io_data": _clean_snippet("""
+            import argparse, csv, json
+            parser = argparse.ArgumentParser()
+            parser.add_argument("input")
+            args = parser.parse_args()
+            with open(args.input, newline="", encoding="utf-8") as f:
+                rows = list(csv.DictReader(f))
+            print(json.dumps(rows, indent=2))
+        """),
+        "python_error_handling": _clean_snippet("""
+            class InvalidAgeError(ValueError): pass
+            def parse_age(text: str) -> int:
+                try:
+                    age = int(text)
+                    if age < 0: raise InvalidAgeError("age must be nonnegative")
+                    return age
+                except ValueError as exc:
+                    raise InvalidAgeError("bad age") from exc
+        """),
+        "python_oop_deep": _clean_snippet("""
+            from dataclasses import dataclass
+            @dataclass(order=True, frozen=True)
+            class Point:
+                x: int
+                y: int
+                @property
+                def manhattan(self) -> int:
+                    return abs(self.x) + abs(self.y)
+        """),
+        "python_iterators_generators_decorators": _clean_snippet("""
+            import functools
+            def log_calls(fn):
+                @functools.wraps(fn)
+                def wrapper(*args, **kwargs):
+                    print("calling", fn.__name__)
+                    return fn(*args, **kwargs)
+                return wrapper
+            def countdown(n):
+                while n > 0:
+                    yield n
+                    n -= 1
+        """),
+        "python_modules_packages_envs": _clean_snippet("""
+            # package layout:
+            # program/__init__.py
+            # program/main.py
+            # requirements.txt
+            if __name__ == "__main__":
+                from program.main import main
+                main()
+        """),
+        "python_testing": _clean_snippet("""
+            import pytest
+            @pytest.mark.parametrize("text,expected", [("1", 1), ("02", 2)])
+            def test_parse_int(text, expected):
+                assert int(text) == expected
+            @pytest.fixture
+            def sample_user():
+                return {"name": "Ryu"}
+        """),
+        "python_ai_ml_readiness": _clean_snippet("""
+            import numpy as np
+            import pandas as pd
+            df = pd.DataFrame({"team": ["a", "a", "b"], "score": [1, 3, 5]})
+            print(df.groupby("team")["score"].mean())
+            vector = np.array(df["score"])
+            print(vector * 2)
+        """),
+    },
+}
+
+for _language, _examples in AUDIT_EXAMPLE_SNIPPETS.items():
+    EXAMPLE_SNIPPETS.setdefault(_language, {}).update(_examples)
 
 
 AI_PRINCIPLES_CURRICULUM = {
@@ -907,6 +2804,666 @@ AI_PRINCIPLES_CURRICULUM = {
         },
     ],
 }
+
+
+AI_AUDIT_APPENDIX = {}
+
+AI_AUDIT_APPENDIX.update({
+    "llm_fundamentals": [
+        _ai_lesson(
+            "Pretraining, SFT, and model families",
+            "Understand how a raw foundation model becomes an assistant.",
+            [
+                "Pretraining learns broad language patterns from next-token prediction on massive corpora.",
+                "Supervised fine-tuning adapts the base model to instruction-response pairs and domain tasks.",
+                "Preference tuning and RLHF/GRPO push outputs toward helpful, safer, more preferred answers.",
+                "Model families differ in quality, latency, context length, and deployment constraints.",
+            ],
+            "Map pretraining, SFT, and preference tuning to the right stage in a model lifecycle.",
+            ("Which stage learns broad language patterns from large corpora?", ["pretraining"]),
+            """
+            base = pretrain(next_token_data)
+            assistant = sft(base, instruction_pairs)
+            aligned = preference_tune(assistant, ranked_answers)
+            """,
+        ),
+        _ai_lesson(
+            "Tokenization, context, and inference controls",
+            "See how text becomes tokens and how sampling settings shape outputs.",
+            [
+                "Tokenization turns text into units such as BPE, SentencePiece, or WordPiece tokens.",
+                "Context windows cap how much prompt and response history the model can attend to at once.",
+                "Temperature, top-k, top-p, and repetition penalty control randomness and repetition.",
+                "Long prompts cost more and can bury useful context in the middle of the window.",
+            ],
+            "Pick an inference setup for a concise assistant, a creative writer, and a code helper.",
+            ("What parameter usually makes output more random?", ["temperature"]),
+            """
+            tokens = tokenizer.encode("explain vector search")
+            logits = model(tokens, temperature=0.2, top_p=0.9)
+            print(len(tokens), logits.sample())
+            """,
+        ),
+        _ai_lesson(
+            "Quantization and deployment tradeoffs",
+            "Choose model sizes and numeric formats with the right latency-quality tradeoff.",
+            [
+                "Quantization compresses model weights to INT8, INT4, GPTQ, AWQ, or GGUF-style formats.",
+                "Lower-bit models use less memory and can run on smaller hardware, but usually lose some quality.",
+                "The right choice depends on privacy, cost, speed, and acceptable quality loss.",
+                "Common families to know include GPT-4o, Claude, Llama, Mistral, Gemini, Qwen, and DeepSeek.",
+            ],
+            "Compare three deployment choices for a private assistant, a batch job, and a high-quality cloud workflow.",
+            ("What is the main reason to quantize a model?", ["reduce memory", "reduce memory use", "fit hardware"]),
+            """
+            model = load_model("gguf", bits=4)
+            print("lower memory, faster load, slight quality tradeoff")
+            """,
+        ),
+    ],
+    "prompting": [
+        _ai_lesson(
+            "Zero-shot, few-shot, and chain-of-thought",
+            "Use examples and reasoning cues deliberately instead of hoping the model infers intent.",
+            [
+                "Zero-shot prompts rely on instructions alone.",
+                "Few-shot prompts add examples that show the desired input-to-output pattern.",
+                "Chain-of-thought prompting can improve reasoning on multi-step tasks.",
+                "Self-consistency samples multiple reasoning paths and chooses the most stable answer.",
+            ],
+            "Rewrite one vague prompt three ways: zero-shot, few-shot, and reasoning-focused.",
+            ("What does few-shot prompting add?", ["examples", "example pairs"]),
+            """
+            zero_shot = prompt("classify this ticket")
+            few_shot = prompt("classify this ticket", examples=[...])
+            cot = prompt("reason step by step, then answer")
+            """,
+        ),
+        _ai_lesson(
+            "System prompts, templates, and structured output",
+            "Separate instructions, context, and output contracts so prompts stay reliable.",
+            [
+                "System prompts set role and policy, while user prompts carry the task request.",
+                "Prompt templates keep variable injection consistent across repeated calls.",
+                "Structured output can be JSON, XML, or a typed schema such as Pydantic.",
+                "A good output contract defines fields, format, length, and refusal behavior.",
+            ],
+            "Turn a loose instruction into a role, context, and schema-based prompt.",
+            ("What part of a prompt defines the response format?", ["output contract", "format", "schema"]),
+            """
+            system = "You are a concise tutor."
+            user = "Return JSON with fields: answer, confidence, rationale."
+            schema = {"answer": "string", "confidence": "number"}
+            """,
+        ),
+        _ai_lesson(
+            "ReAct, self-consistency, and injection defense",
+            "Teach the model when to think, when to call tools, and how to resist hostile instructions.",
+            [
+                "ReAct interleaves reasoning and acting so the model can inspect results before continuing.",
+                "Prompt injection tries to override instructions or manipulate tool use.",
+                "Defensive prompting narrows tool authority and tells the model what not to trust.",
+                "Majority voting and self-consistency help stabilize noisy answers.",
+            ],
+            "Write a prompt that uses tools only when needed and ignores untrusted instructions in retrieved text.",
+            ("What attack tries to override the model's instructions?", ["prompt injection", "injection"]),
+            """
+            thought = plan(question)
+            if need_tool(thought):
+                result = call_tool(tool_schema)
+            answer = synthesize(thought, result)
+            """,
+        ),
+    ],
+    "embeddings": [
+        _ai_lesson(
+            "Word, sentence, and document embeddings",
+            "Understand how dense vectors represent meaning at different granularities.",
+            [
+                "Word embeddings capture local semantic relationships such as similarity and analogy.",
+                "Sentence and document embeddings represent larger spans for retrieval and clustering.",
+                "Dense vectors let semantically similar text sit near each other even when words differ.",
+                "Embeddings are the backbone of vector search, RAG, recommendations, and deduplication.",
+            ],
+            "Explain why semantic search can find a relevant chunk that keyword search misses.",
+            ("What does an embedding represent?", ["vector representation of meaning", "meaning vector", "dense vector"]),
+            """
+            query_vec = embed("how should I chunk documents?")
+            doc_vec = embed("recursive chunking preserves headings")
+            print(cosine(query_vec, doc_vec))
+            """,
+        ),
+        _ai_lesson(
+            "Similarity metrics and embedding model choices",
+            "Choose the right metric and embedding model for the task you actually have.",
+            [
+                "Cosine similarity is common for semantic search; dot product and Euclidean distance appear in different stacks.",
+                "Models such as Word2Vec, GloVe, sentence-transformers, E5, BGE, and CLIP cover different input types.",
+                "Embedding dimensionality affects quality, cost, and index size.",
+                "Batch embedding matters when you process large corpora or API-backed indexes.",
+            ],
+            "Decide which embedding family you would use for documents, code, and image-text retrieval.",
+            ("Which metric is most common for semantic similarity?", ["cosine similarity", "cosine"]),
+            """
+            docs = embed_batch(chunks, batch_size=64)
+            image_vec, text_vec = clip_embed(image, text)
+            score = cosine(image_vec, text_vec)
+            """,
+        ),
+    ],
+    "ml_basics": [
+        _ai_lesson(
+            "Mathematical foundations for ML",
+            "Cover the minimum math needed to read ML and AI engineering explanations confidently.",
+            [
+                "Vectors, matrices, dot products, and matrix multiplication are the language of model computations.",
+                "Derivatives, gradients, and the chain rule explain how models learn from loss.",
+                "Probability and Bayes' theorem describe uncertainty and conditional reasoning.",
+                "Mean, variance, standard deviation, correlation, entropy, cross-entropy, and KL divergence show up in training and evaluation.",
+            ],
+            "Connect one math idea to a concrete ML use case such as loss gradients or similarity search.",
+            ("What quantity tells gradient descent which way to change parameters?", ["gradient"]),
+            """
+            x = [1, 2, 3]
+            w = [0.2, 0.5, 0.3]
+            score = dot(x, w)
+            grad = d_loss_d_w(score, target)
+            """,
+        ),
+        _ai_lesson(
+            "Core ML concepts and data splits",
+            "Understand the basic training loop before choosing a model family.",
+            [
+                "Supervised learning uses labeled examples; unsupervised learning looks for structure without labels.",
+                "Reinforcement learning learns from rewards and feedback rather than fixed labels.",
+                "Training data, loss functions, optimizers, and learning rate form the core learning loop.",
+                "Train/validation/test splits, cross-validation, and the bias-variance tradeoff protect against misleading metrics.",
+            ],
+            "Describe how you would split a small dataset and why the test set stays untouched.",
+            ("Which split should stay untouched until the end?", ["test", "test set"]),
+            """
+            train, val, test = split(data, 0.7, 0.15, 0.15)
+            model.fit(train.X, train.y)
+            print(metric(model, val))
+            """,
+        ),
+        _ai_lesson(
+            "Classical supervised learning",
+            "Learn the algorithm families that still matter in real ML systems.",
+            [
+                "Linear regression predicts continuous values, often with MSE as the training objective.",
+                "Logistic regression maps features to class probabilities with a sigmoid decision boundary.",
+                "Decision trees, random forests, and boosting methods capture nonlinear structure in tabular data.",
+                "SVMs, k-nearest neighbors, and naive Bayes are still useful baselines and teaching tools.",
+            ],
+            "Pick one classical algorithm for regression, one for classification, and one for text.",
+            ("Which algorithm is a common tabular baseline for classification?", ["logistic regression"]),
+            """
+            y_reg = linear_regression(X)
+            y_cls = logistic_regression(X)
+            tree = decision_tree.fit(X, y)
+            """,
+        ),
+        _ai_lesson(
+            "Unsupervised learning and anomaly detection",
+            "See how clustering, dimensionality reduction, and outlier detection fit into AI workflows.",
+            [
+                "K-means and DBSCAN group similar examples without labels.",
+                "PCA, t-SNE, and UMAP reduce dimensionality or reveal structure in high-dimensional data.",
+                "Isolation forests and statistical methods help flag anomalies and unusual points.",
+                "Unsupervised methods are useful when labels are missing or the goal is exploration.",
+            ],
+            "Choose an unsupervised method for clustering users, compressing embeddings, and finding outliers.",
+            ("Which algorithm is commonly used for clustering?", ["k-means", "dbscan"]),
+            """
+            clusters = kmeans(X, k=4)
+            low_dim = PCA(2).fit_transform(X)
+            outliers = isolation_forest(X)
+            """,
+        ),
+        _ai_lesson(
+            "Evaluation metrics and model selection",
+            "Choose metrics that actually match the problem and business goal.",
+            [
+                "Classification metrics include accuracy, precision, recall, F1, confusion matrix, ROC-AUC, and PR curves.",
+                "Regression metrics include MSE, RMSE, MAE, and R^2.",
+                "Class imbalance often requires oversampling, undersampling, SMOTE, or weighted loss.",
+                "Comparing models should include confidence intervals or significance checks when decisions matter.",
+            ],
+            "Pick the right metric for spam filtering, churn, and price prediction.",
+            ("Which metric is usually best for imbalanced binary classification?", ["f1", "precision recall", "pr auc"]),
+            """
+            precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            rmse = sqrt(mse(y, yhat))
+            """,
+        ),
+        _ai_lesson(
+            "Feature engineering and preprocessing",
+            "Prepare data so simple models and deep models both get a fair shot.",
+            [
+                "Normalization, standardization, and scaling make numeric features comparable.",
+                "Categorical variables often need one-hot, label, or target encoding.",
+                "Missing data can be handled with imputation, deletion, or model-aware strategies.",
+                "TF-IDF, bag-of-words, and EDA remain useful baselines before jumping to embeddings.",
+            ],
+            "Show how you would clean a mixed numeric/categorical dataset before training.",
+            ("What is one common way to encode categorical variables?", ["one-hot", "label encoding", "target encoding"]),
+            """
+            X = standardize(X_num)
+            X = one_hot(X_cat)
+            X = impute_missing(X)
+            """,
+        ),
+    ],
+})
+
+AI_AUDIT_APPENDIX.update({
+    "transformers": [
+        _ai_lesson(
+            "Neural networks and deep learning foundations",
+            "Understand the building blocks beneath modern LLMs.",
+            [
+                "Perceptrons and multi-layer perceptrons turn inputs into learned nonlinear features.",
+                "Activations such as ReLU, sigmoid, tanh, and softmax make deep networks expressive.",
+                "Backpropagation applies the chain rule to compute gradients layer by layer.",
+                "Optimizers such as SGD, Adam, and AdamW turn gradients into parameter updates.",
+            ],
+            "Trace one forward pass and one backward pass through a tiny network.",
+            ("What algorithm computes gradients through the network?", ["backpropagation", "backprop"]),
+            """
+            h = relu(W1 @ x + b1)
+            yhat = softmax(W2 @ h + b2)
+            loss.backward()
+            """,
+        ),
+        _ai_lesson(
+            "The transformer architecture",
+            "Learn the core architecture that made modern LLMs practical.",
+            [
+                "Attention uses query, key, and value vectors to let tokens exchange information.",
+                "Multi-head attention lets the model track several relationships at once.",
+                "Positional encodings give the model a notion of token order.",
+                "Decoder-only, encoder-only, and encoder-decoder families serve different tasks and training styles.",
+            ],
+            "Explain why attention beats a plain recurrent loop for large-context language modeling.",
+            ("What vectors does attention use?", ["query key value", "q k v"]),
+            """
+            q, k, v = project(tokens)
+            attn = softmax(q @ k.T / sqrt(d)) @ v
+            """,
+        ),
+        _ai_lesson(
+            "How large language models are trained",
+            "Understand the full training story from pretraining to alignment.",
+            [
+                "Pretraining learns next-token prediction or masked language modeling from large corpora.",
+                "Scaling laws describe how quality changes with data, compute, and parameter count.",
+                "Instruction tuning and SFT convert a base model into a more useful assistant.",
+                "RLHF and newer alignment methods improve preference following and safety.",
+            ],
+            "Explain how pretraining, SFT, and alignment differ in purpose and data shape.",
+            ("Which stage usually uses instruction-response examples?", ["sft", "supervised fine-tuning"]),
+            """
+            base = pretrain(corpus)
+            assistant = sft(base, instruction_pairs)
+            aligned = rlhf_or_grpo(assistant)
+            """,
+        ),
+        _ai_lesson(
+            "Fine-tuning LLMs with PEFT",
+            "Choose fine-tuning, prompting, or RAG with a production mindset.",
+            [
+                "Fine-tuning makes sense when the behavior should be repeated, specialized, or style-critical.",
+                "PEFT dominates in practice because it adapts fewer parameters at lower cost.",
+                "LoRA and QLoRA are the standard low-rank adaptation approaches most engineers should know.",
+                "RAFT mixes retrieval and fine-tuning when both knowledge grounding and model adaptation matter.",
+            ],
+            "Pick one scenario where fine-tuning is better than prompting and one where RAG is better.",
+            ("What does LoRA adapt?", ["low-rank adapters", "low rank adapters"]),
+            """
+            base = load_model("open-weights")
+            adapt = lora(base, target_modules=["q_proj", "v_proj"])
+            finetuned = qlora(base, rank=16)
+            """,
+        ),
+    ],
+    "rag": [
+        _ai_lesson(
+            "RAG architecture and why it exists",
+            "Understand the core retrieve-augment-generate loop and where it fits.",
+            [
+                "RAG grounds an LLM in external evidence instead of relying only on model weights.",
+                "The core loop is query, retrieve, augment, and generate.",
+                "Naive, advanced, and modular RAG differ in how retrieval and orchestration are separated.",
+                "RAG is useful when facts change, sources matter, or private data must stay outside model training.",
+            ],
+            "Compare RAG, fine-tuning, and long-context prompting for three different product needs.",
+            ("What is the first step in the core RAG loop?", ["query"]),
+            """
+            q = user_question()
+            chunks = retrieve(q)
+            answer = generate(q, chunks)
+            """,
+        ),
+        _ai_lesson(
+            "Document ingestion, loaders, and chunking",
+            "Turn raw documents into retrieval-ready chunks with useful metadata.",
+            [
+                "Loaders often need to handle PDF, HTML, Markdown, DOCX, CSV, and code files.",
+                "Chunking can be fixed-size, recursive, sentence-based, or semantic.",
+                "Metadata such as page number, section title, source, and timestamp make citations and filters work.",
+                "Chunk size and overlap strongly affect retrieval quality and the lost-in-the-middle problem.",
+            ],
+            "Explain how you would split a long PDF into chunks without destroying headings and tables.",
+            ("Why do RAG systems chunk documents?", ["fit context", "smaller retrieval units", "retrieval quality"]),
+            """
+            docs = load_pdf()
+            chunks = chunk(docs, size=800, overlap=120)
+            meta = {"page": 3, "source": "handbook"}
+            """,
+        ),
+        _ai_lesson(
+            "Embedding, indexing, and vector databases",
+            "Store semantic representations so retrieval can scale beyond brute force.",
+            [
+                "Embedding models turn chunks into vectors and make semantic retrieval possible.",
+                "Vector indexes and vector databases store vectors plus metadata for fast lookup and filtering.",
+                "Approximate nearest-neighbor methods trade a little recall for major speed gains.",
+                "Batch embedding, index choice, and dimensionality are cost and quality decisions, not afterthoughts.",
+            ],
+            "Describe what a vector DB stores that a normal relational DB does not optimize for.",
+            ("Which structure speeds nearest-neighbor search?", ["vector index", "ann index", "hnsw", "ivf"]),
+            """
+            vecs = embed_batch(chunks)
+            index = hnsw_upsert(vecs, metadata)
+            print(index.search(query_vec))
+            """,
+        ),
+        _ai_lesson(
+            "Retrieval, reranking, and grounding",
+            "Improve retrieval quality and keep the generated answer anchored to evidence.",
+            [
+                "Dense search, sparse search, and hybrid search solve different retrieval problems.",
+                "Cross-encoder rerankers refine coarse retrieval candidates before generation.",
+                "Prompt construction should separate instructions, question, and retrieved context clearly.",
+                "Good grounding teaches the model to abstain when the context is insufficient.",
+            ],
+            "Write a retrieval stack that uses dense search, BM25, and reranking before generation.",
+            ("What does hybrid search combine?", ["dense and sparse retrieval", "dense + sparse"]),
+            """
+            dense = vector_search(q)
+            sparse = bm25(q)
+            ranked = rerank(q, dense + sparse)
+            """,
+        ),
+        _ai_lesson(
+            "Advanced RAG, evaluation, and production",
+            "Use advanced patterns and metrics to ship RAG responsibly.",
+            [
+                "GraphRAG, Self-reflective RAG, CRAG, RAPTOR, and Agentic RAG tackle harder retrieval problems.",
+                "RAG evaluation tracks precision@k, recall@k, faithfulness, answer relevance, and context relevance.",
+                "Production concerns include access control, incremental indexing, caching, latency, and observability.",
+                "Agentic RAG uses query decomposition, validation, and specialized workers to improve hard queries.",
+            ],
+            "Name one advanced RAG pattern and one production concern you would monitor first.",
+            ("Which RAG metric checks whether the answer follows the retrieved context?", ["faithfulness"]),
+            """
+            if not enough_context:
+                ask_clarification()
+            score = ragas(context, answer)
+            log({"query": q, "score": score})
+            """,
+        ),
+    ],
+    "data_engineering": [
+        _ai_lesson(
+            "AI data pipelines",
+            "See how raw inputs become training, retrieval, or evaluation data.",
+            [
+                "AI pipelines cover ingestion, parsing, cleaning, normalization, validation, and storage.",
+                "Extraction can fail on tables, images, multi-column layouts, or malformed files.",
+                "Incremental, observable, replayable pipelines are much easier to debug than ad hoc scripts.",
+                "Pipeline quality strongly shapes model quality downstream.",
+            ],
+            "Sketch a pipeline that ingests PDFs, cleans text, and stores chunk records.",
+            ("What should a reliable pipeline be able to do after a failure?", ["replay", "rerun", "resume"]),
+            """
+            raw = ingest(files)
+            clean = normalize(raw)
+            store(clean)
+            """,
+        ),
+        _ai_lesson(
+            "Labels, lineage, and versioning",
+            "Keep track of what the model learned from and what changed over time.",
+            [
+                "Labels define target outputs for supervised learning or evaluation tasks.",
+                "Ground truth can be noisy, delayed, or expensive, so labeling rules matter.",
+                "Dataset versioning records exactly which data went into a model or index.",
+                "Lineage tracks where the data came from and which transforms changed it.",
+            ],
+            "Define metadata you would attach to one dataset version and one transformed chunk set.",
+            ("What tracks where data came from and how it changed?", ["lineage", "data lineage"]),
+            """
+            record = {"source": url, "version": "v3", "transform": "chunker-2"}
+            audit_log(record)
+            """,
+        ),
+        _ai_lesson(
+            "Data quality and governance",
+            "Add checks before broken data reaches models or retrieval indexes.",
+            [
+                "Validate schema, null rate, duplicate rate, ranges, and encoding before training or indexing.",
+                "Check for leakage, duplicate examples across splits, and corrupted records.",
+                "RAG systems need permissions and metadata checks so users cannot retrieve private material they should not see.",
+                "Quality gates are much cheaper than debugging model behavior later.",
+            ],
+            "Write three quality checks for a document or tabular AI pipeline.",
+            ("What kind of examples across train/test splits can inflate scores?", ["duplicates", "duplicate examples"]),
+            """
+            assert schema_ok(df)
+            assert null_rate(df) < 0.01
+            assert not leaked_rows(df)
+            """,
+        ),
+    ],
+})
+
+AI_AUDIT_APPENDIX.update({
+    "harnesses": [
+        _ai_lesson(
+            "Why evaluation matters",
+            "Understand why AI engineering needs repeatable measurement.",
+            [
+                "Ad hoc testing makes results hard to compare and easy to fool yourself with.",
+                "Evaluation should be a loop: measure, change, compare, and regressions-check.",
+                "Benchmarks, online tests, and human review each answer different questions.",
+                "Capability evals and safety evals should be separated, not blended together.",
+            ],
+            "Describe one AI change that should be measured before and after deployment.",
+            ("Why should evaluation be repeatable?", ["reproducibility", "comparison", "regression detection"]),
+            """
+            before = run_eval(old_prompt)
+            after = run_eval(new_prompt)
+            compare(before, after)
+            """,
+        ),
+        _ai_lesson(
+            "Benchmarks and lm-evaluation-harness",
+            "Know which benchmarks test what and how to run them in practice.",
+            [
+                "MMLU tests broad knowledge, HellaSwag tests commonsense, GSM8K tests grade-school math, and HumanEval tests code generation.",
+                "IFEval and MT-Bench cover instruction following and multi-turn behavior.",
+                "EleutherAI lm-evaluation-harness standardizes YAML tasks, model backends, and reporting.",
+                "Writing a custom task and pinning config plus commit hash make benchmark runs reproducible.",
+            ],
+            "Pick one benchmark for knowledge, one for math, and one for code.",
+            ("Which benchmark is commonly used for code generation?", ["humaneval"]),
+            """
+            lm_eval --model hf --tasks hellaswag,gsm8k --fewshot 5
+            task = {"name": "custom_eval", "metrics": ["exact_match"]}
+            """,
+        ),
+        _ai_lesson(
+            "Metrics and LLM-as-judge",
+            "Choose scoring methods that match the task and the amount of fuzziness involved.",
+            [
+                "Exact match and F1 work well for strict or extractive tasks.",
+                "BLEU, ROUGE, METEOR, BERTScore, and pass@k cover different generation goals.",
+                "LLM-as-judge is useful for subjective outputs but has biases like verbosity and position bias.",
+                "Rubrics and reference answers make judge-based evals much more reliable.",
+            ],
+            "Decide which metric you would use for QA, summarization, and code generation.",
+            ("What judge bias rewards longer answers?", ["verbosity bias"]),
+            """
+            score = judge(prompt, response, rubric)
+            print({"f1": f1, "pass@k": pass_at_k, "judge": score})
+            """,
+        ),
+        _ai_lesson(
+            "RAG-specific evaluation and CI/CD tools",
+            "Measure retrieval and grounding separately from the final response text.",
+            [
+                "RAGAS adds faithfulness, answer relevance, context precision, and context recall.",
+                "Hallucination detection checks claims against retrieved evidence.",
+                "DeepEval and Promptfoo make it easier to run AI tests inside CI/CD pipelines.",
+                "Quality gates, dashboards, and synthetic test sets keep retrieval regressions visible.",
+            ],
+            "Write one test that checks retrieval and one that checks final-answer faithfulness.",
+            ("Which metric checks how well retrieved context supports the answer?", ["faithfulness"]),
+            """
+            pytest -m eval
+            promptfoo run
+            record({"faithfulness": faith, "context_recall": recall})
+            """,
+        ),
+        _ai_lesson(
+            "Safety, red-teaming, and human evaluation",
+            "Use adversarial testing and human review when automated metrics are not enough.",
+            [
+                "Safety evals include toxicity, stereotype, jailbreak, and harmful-output checks.",
+                "Red-teaming intentionally probes failure modes and edge cases.",
+                "Human evaluation needs rubrics, calibration, and inter-annotator agreement to be trusted.",
+                "Some tasks should also enforce compliance and policy constraints such as GDPR or HIPAA.",
+            ],
+            "Design a small human-eval rubric for answer quality and safety.",
+            ("What is one purpose of red-teaming?", ["find failure modes", "adversarial testing"]),
+            """
+            red_team(prompt)
+            sample = annotate(pairwise_examples)
+            report_kappa(sample)
+            """,
+        ),
+    ],
+    "agents": [
+        _ai_lesson(
+            "What makes AI agentic",
+            "Understand the difference between a chatbot, a pipeline, and an agent.",
+            [
+                "An agent reasons, plans, acts, and observes outcomes in a loop.",
+                "ReAct interleaves reasoning and acting so the model can inspect results.",
+                "Agents are useful when task steps are open-ended, tool-heavy, or need adaptation.",
+                "A simple prompt is still better when the workflow is small and predictable.",
+            ],
+            "Decide whether a task should be a prompt, pipeline, or agent.",
+            ("What pattern interleaves reasoning and acting?", ["react", "reasoning and acting"]),
+            """
+            while not done:
+                thought = plan(state)
+                action = choose_tool(thought)
+            """,
+        ),
+        _ai_lesson(
+            "Tools and function calling",
+            "Use schemas so the model can invoke tools reliably.",
+            [
+                "Tool definitions should include a name, a description, and a JSON schema for parameters.",
+                "Function calling turns tool use into structured requests instead of free-form text guesses.",
+                "Sequential and parallel tool calls each fit different workflows.",
+                "Tool errors need retries, fallbacks, and clear failure handling.",
+            ],
+            "Design one tool schema for search and one for a database lookup.",
+            ("What makes tool invocation reliable?", ["structured schema", "function calling", "json schema"]),
+            """
+            tool = {"name": "search", "parameters": {"query": "..."}}
+            result = call_tool(tool)
+            """,
+        ),
+        _ai_lesson(
+            "MCP architecture and servers",
+            "Connect AI systems to tools through the modern universal protocol.",
+            [
+                "MCP separates host, client, and server responsibilities over JSON-RPC 2.0.",
+                "Tools, resources, prompts, and sampling are core MCP primitives.",
+                "STDIO and Streamable HTTP cover local and remote transports.",
+                "Building both a server and a client is part of practical AI engineering now.",
+            ],
+            "Explain how MCP differs from ad hoc tool wiring in one sentence.",
+            ("What does MCP standardize?", ["tool connectivity", "ai-to-tool connectivity", "host client server messaging"]),
+            """
+            host -> client -> server
+            tools = discover_tools(server)
+            call(tool_name, args)
+            """,
+        ),
+        _ai_lesson(
+            "LangChain and LangGraph",
+            "Use graph-based orchestration when an agent needs state and control flow.",
+            [
+                "LangChain covers prompts, chains, wrappers, and parsers.",
+                "LangGraph adds nodes, edges, conditional routing, and durable state.",
+                "Checkpointers, threads, and interrupt nodes make human-in-the-loop workflows possible.",
+                "Subgraphs help you keep large workflows modular and debuggable.",
+                "OpenAI Agents SDK, CrewAI, AutoGen, and smolagents are alternatives with different tradeoffs.",
+            ],
+            "Sketch one workflow that would be easier in LangGraph than in a single linear chain.",
+            ("What LangGraph concept represents stateful routing?", ["nodes and edges", "graph", "conditional edges"]),
+            """
+            graph.add_node("plan", plan)
+            graph.add_edge("plan", "tool")
+            graph.add_conditional_edge("tool", router)
+            """,
+        ),
+        _ai_lesson(
+            "Memory and multi-agent systems",
+            "Manage short-term and long-term memory, then coordinate several specialist agents.",
+            [
+                "Short-term memory holds the live conversation buffer and recent state.",
+                "Long-term memory uses a vector store or database to recall past work.",
+                "Multi-agent systems split work into roles such as planner, researcher, critic, and executor.",
+                "Supervisor agents and handoffs keep specialization from turning into chaos.",
+            ],
+            "Describe one memory strategy and one role split for a research workflow.",
+            ("Which memory store usually holds past interactions?", ["long-term memory", "vector store"]),
+            """
+            short_term.append(message)
+            long_term = retrieve(query)
+            next_agent = supervisor.route(task)
+            """,
+        ),
+        _ai_lesson(
+            "Agentic design patterns and production",
+            "Ship agents that are observable, secure, and useful in real workflows.",
+            [
+                "Reflection, planning, routing, and tool augmentation are core agentic design patterns.",
+                "Research agent, code agent, data analysis agent, RAG agent, browser agent, and workflow agent patterns are common applications.",
+                "Observability tools such as LangSmith or LangFuse help debug loops and tool choices.",
+                "Production agents need prompt-injection defense, permission scoping, retries, idempotency, and cost control.",
+            ],
+            "Pick one end-to-end agent project and list the tools, failure modes, and monitoring you would need.",
+            ("What is one production safeguard for an agent?", ["permission scoping", "prompt injection defense", "idempotency"]),
+            """
+            planner -> researcher -> critic -> executor
+            trace = langsmith.run(agent)
+            enforce_permissions(tools)
+            """,
+        ),
+    ],
+})
+
+for _module, _lessons in AI_AUDIT_APPENDIX.items():
+    AI_PRINCIPLES_CURRICULUM[_module].extend(_lessons)
 
 
 def load_config() -> dict:
@@ -1585,10 +4142,12 @@ def handle_leetcode(args) -> None:
 
 def build_learning_curriculum(language: str) -> list[dict]:
     lessons = []
-    for i, (topic, title, objective) in enumerate(LESSON_TOPICS, 1):
-        example = EXAMPLE_SNIPPETS.get(language, {}).get(topic)
-        if not example:
-            example = EXAMPLE_SNIPPETS.get(language, {}).get("variables", "")
+    topics = list(LESSON_TOPICS) + list(AUDIT_LESSON_TOPICS.get(language, []))
+    for i, (topic, title, objective) in enumerate(topics, 1):
+        # Only show an example when one exists for this exact topic. Falling back
+        # to an unrelated snippet (e.g. the variables example under "recursion")
+        # is more confusing than showing none.
+        example = EXAMPLE_SNIPPETS.get(language, {}).get(topic, "")
         quiz_q, answers = QUIZ_BY_TOPIC.get(topic, ("Type the main keyword or idea from this lesson.", [topic]))
         lessons.append({
             "day": i,
@@ -1638,6 +4197,7 @@ def load_learning_progress() -> dict:
     progress.setdefault("active_ai_module", "")
     progress.setdefault("ai_provider", "")
     progress.setdefault("local_model", "")
+    progress.setdefault("theme", "dark")
     languages = progress.setdefault("languages", {})
     for language in LEARN_LANGUAGES:
         languages.setdefault(language, {"completed_lessons": [], "completed_topics": [], "last_session": ""})
@@ -1776,7 +4336,8 @@ def _mark_topic_complete(language: str, topic: str, progress: dict) -> None:
     mapped = topic
     if topic == "hash_maps":
         mapped = "arrays_hashing"
-    if mapped not in lc_topics:
+    catalog_topics = set(load_leetcode_catalog().get("topics", []))
+    if mapped in catalog_topics and mapped not in lc_topics:
         lc_topics.append(mapped)
         lc_topics.sort()
     save_leetcode_progress(lc_progress)
@@ -1832,26 +4393,37 @@ def _provider_ready(provider: str, cfg: dict) -> bool:
 
 
 def _choose_local_model(cfg: dict, current: str = "") -> str:
+    """Let the learner pick (or change) the local model.
+
+    Lists models from LM Studio's server when reachable, marks the current one,
+    and always lets the user pick a number, type a model name, or press Enter to
+    keep the current choice. Returns the chosen model name (or current/"").
+    """
     models = _list_lm_studio(cfg)
-    if not models:
-        return ""
-    if current in models:
-        return current
     ui_blank()
-    ui_box(
-        [f"[{idx}] {model}{'  default' if model == current else ''}" for idx, model in enumerate(models, 1)],
-        title="Choose a local model",
-        color=ANSI.cyan,
-    )
+    if models:
+        lines = [f"[{idx}] {model}{'  (current)' if model == current else ''}" for idx, model in enumerate(models, 1)]
+        if current and current not in models:
+            lines.append(f"Current: {current}  (not in the server's list)")
+        lines.append("Pick a number, type a model name, or press Enter to keep the current model.")
+        ui_box(lines, title="Choose a local model", color=ANSI.cyan)
+    else:
+        ui_box(
+            ["No models found from LM Studio's local server.",
+             "Start LM Studio and load a model, or type a model name to use.",
+             f"Current model: {current or '(none)'}"],
+            title="Choose a local model", color=ANSI.amber,
+        )
     while True:
-        raw = ui_prompt()
-        if not raw and current in models:
+        raw = _read_line("> ").strip()
+        if not raw:
             return current
         if raw.isdigit():
-            pick = int(raw)
-            if 1 <= pick <= len(models):
-                return models[pick - 1]
-        ui_line("Pick a number from the list.", color=ANSI.amber)
+            if models and 1 <= int(raw) <= len(models):
+                return models[int(raw) - 1]
+            ui_line(f"Pick a number 1-{len(models)} or type a model name.", color=ANSI.amber)
+            continue
+        return raw  # treat anything else as a typed model name
 
 
 def _learning_local_model(progress: dict, cfg: dict, prompt_if_missing: bool = True) -> str:
@@ -1869,17 +4441,25 @@ def _learning_local_model(progress: dict, cfg: dict, prompt_if_missing: bool = T
     return model
 
 
-def _learning_ai_response(provider: str, question: str, subject: str, cfg: dict, progress: dict, context: str = "") -> str:
+def _prepare_ai_cfg(provider: str, cfg: dict, progress: dict) -> tuple[dict, str | None]:
+    """Resolve config for a learning AI call. Returns (cfg, error_message_or_None)."""
     if provider == "offline":
-        return "AI assistance is set to offline. Change AI settings from the Learn menu to use local or cloud help."
+        return cfg, "AI assistance is set to offline. Change AI settings from the Learn menu to use local or cloud help."
     local_cfg = dict(cfg)
     if provider == "local":
         local_model = _learning_local_model(progress, cfg, prompt_if_missing=True)
         if not local_model:
-            return "No local model is selected. Open Settings and choose a local model first."
+            return local_cfg, "No local model is selected. Open Settings and choose a local model first."
         local_cfg["local_model"] = local_model
     if not _provider_ready(provider, local_cfg):
-        return f"{LEARN_AI_PROVIDERS[provider]} is not ready. Check your model/API key, or switch AI settings."
+        return local_cfg, f"{LEARN_AI_PROVIDERS[provider]} is not ready. Check your model/API key, or switch AI settings."
+    return local_cfg, None
+
+
+def _learning_ai_response(provider: str, question: str, subject: str, cfg: dict, progress: dict, context: str = "") -> str:
+    local_cfg, error = _prepare_ai_cfg(provider, cfg, progress)
+    if error:
+        return error
     system = (
         "You are a concise technical tutor for a beginner. "
         "Explain the idea, give one small practical example, and avoid doing the learner's exercise unless asked. "
@@ -1892,96 +4472,417 @@ def _learning_ai_response(provider: str, question: str, subject: str, cfg: dict,
         return f"AI request failed: {exc}"
 
 
-def _show_ai_feedback(response: str, next_hint: str) -> None:
-    ui_blank()
-    ui_box(response.splitlines() or ["No response."], title="Tutor feedback", color=ANSI.cyan)
-    ui_blank()
-    ui_box([next_hint, "Press Enter to continue."], title="Next step", color=ANSI.green)
-    input(_center_text(f"{ANSI.green}> {ANSI.reset}"))
+def _grade_answer(provider: str, question: str, answer: str, accepted: list[str],
+                  subject: str, cfg: dict, progress: dict, context: str = "") -> tuple[bool, str]:
+    """Judge a learner's short answer.
+
+    When a live AI provider is configured, the model decides correctness so the
+    learner is judged on meaning, not exact wording. Falls back to local keyword
+    matching offline or whenever the AI call/parse fails. Returns (is_correct, feedback).
+    """
+    local_cfg, error = _prepare_ai_cfg(provider, cfg, progress)
+    if error:
+        # Offline or provider not ready: fall back to keyword matching, no prose.
+        return _answer_matches(answer, accepted), ""
+    system = (
+        "You are grading a beginner's short answer to a concept question. "
+        "Decide whether the learner's answer is essentially correct, even if it is "
+        "worded differently, partial, or uses synonyms, as long as the core idea is right. "
+        "Return ONLY valid JSON, no markdown fences: "
+        '{"correct": true or false, "feedback": "one or two sentences"}. '
+        "If incorrect, the feedback should gently point toward the right idea without "
+        "simply restating the reference answer verbatim. If correct, briefly affirm it."
+    )
+    user_msg = (
+        f"Subject: {subject}\n"
+        f"Context: {context}\n"
+        f"Question: {question}\n"
+        f"Reference correct answer(s): {', '.join(accepted)}\n"
+        f"Learner's answer: {answer}"
+    )
+    try:
+        raw = _call_ai(system, user_msg, provider, local_cfg, timeout=60)
+        data = _parse_json_response(raw or "")
+        if isinstance(data, dict) and "correct" in data:
+            return bool(data["correct"]), str(data.get("feedback", "")).strip()
+    except Exception:
+        pass
+    return _answer_matches(answer, accepted), ""
 
 
-def _print_lesson(language: str, lesson: dict) -> None:
-    note = LANGUAGE_NOTES[language]
+def _show_ai_feedback(response: str, title: str = "Tutor") -> None:
+    ui_blank()
+    ui_box(response.splitlines() or ["No response."], title=title, color=ANSI.cyan)
+    ui_blank()
+    ui_line("Press Enter to continue.", color=ANSI.dim)
+    _read_line()
+
+
+def _read_code_block(language: str | None = None) -> str:
+    """In-app multi-line code editor with full arrow-key navigation.
+
+    Uses prompt_toolkit so the learner can move up/down between lines and edit
+    freely (with syntax highlighting when pygments is available). Falls back to
+    a simple line reader when prompt_toolkit is missing or there is no terminal.
+    """
+    code = _read_code_block_ptk(language)
+    return _read_code_block_inline(language) if code is None else code
+
+
+def _read_code_block_ptk(language: str | None = None) -> str | None:
+    """Framed multi-line code editor. Returns the code, or None if unusable.
+
+    Draws a bordered box around the typing area (matching the rest of the UI)
+    with line numbers and syntax highlighting, full arrow-key navigation, and
+    Tab to indent.
+    """
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return None
+    try:
+        from prompt_toolkit.application import Application
+        from prompt_toolkit.key_binding import KeyBindings
+        from prompt_toolkit.layout import Layout
+        from prompt_toolkit.layout.containers import HSplit, VSplit, Window
+        from prompt_toolkit.layout.controls import FormattedTextControl
+        from prompt_toolkit.layout.dimension import Dimension
+        from prompt_toolkit.widgets import Frame, TextArea
+    except ImportError:
+        return None
+
+    lexer = None
+    try:  # syntax highlighting is a nice-to-have, not required
+        from prompt_toolkit.lexers import PygmentsLexer
+        from pygments.lexers import CLexer, JavaLexer, PythonLexer
+        lex = {"python": PythonLexer, "c": CLexer, "java": JavaLexer}.get(language or "")
+        if lex:
+            lexer = PygmentsLexer(lex)
+    except Exception:
+        lexer = None
+
+    lang_label = LEARN_LANGUAGES.get(language or "", "")
+    box_width = min(84, _term_width() - 8)
+    left = max(0, (shutil.get_terminal_size((96, 24)).columns - box_width) // 2)
+
+    text_area = TextArea(
+        multiline=True,
+        line_numbers=True,
+        scrollbar=True,
+        wrap_lines=False,
+        lexer=lexer,
+        width=Dimension.exact(box_width - 2),
+        height=Dimension(min=6, preferred=14),
+    )
+
+    result: dict[str, str | None] = {"text": ""}
+
+    bindings = KeyBindings()
+
+    @bindings.add("c-s")
+    @bindings.add("escape", "enter")
+    def _(event):
+        result["text"] = text_area.text
+        event.app.exit()
+
+    @bindings.add("c-c")
+    def _(event):
+        result["text"] = None  # cancelled
+        event.app.exit()
+
+    @bindings.add("tab")
+    def _(event):
+        text_area.buffer.insert_text("    ")
+
+    title = "Code editor" + (f" ({lang_label})" if lang_label else "")
+    help_line = Window(
+        FormattedTextControl(" Esc+Enter / Ctrl+S submit · Tab indent · arrows move · Ctrl+C cancel"),
+        height=1, width=Dimension.exact(box_width),
+    )
+    body = VSplit([Window(width=Dimension.exact(left)), HSplit([Frame(text_area, title=title), help_line])])
+    app: Application = Application(
+        layout=Layout(body, focused_element=text_area),
+        key_bindings=bindings,
+        mouse_support=True,
+        full_screen=False,
+    )
+    try:
+        app.run()
+    except (KeyboardInterrupt, EOFError):
+        return ""
+    text = result["text"]
+    return "" if text is None else text.strip("\n")
+
+
+def _read_code_block_inline(language: str | None = None) -> str:
+    """Fallback line-by-line reader for when no editor/TTY is available.
+
+    Enter inserts a new line; submission is an explicit command so writing code
+    works the way users expect. Returns the typed code, or "" if cancelled/empty.
+    """
     ui_blank()
     ui_box(
         [
-            lesson["objective"],
-            "",
-            note["syntax"],
+            "Write your code below. Press Enter for a new line.",
+            "Type :done on its own line (or Ctrl-D) to submit.",
+            "Type :cancel to go back without submitting.",
         ],
-        title=f"Day {lesson['day']}: {lesson['title']} ({LEARN_LANGUAGES[language]})",
+        title="Code editor" + (f" ({LEARN_LANGUAGES[language]})" if language in LEARN_LANGUAGES else ""),
         color=ANSI.cyan,
     )
+    lines: list[str] = []
+    while True:
+        try:
+            line = input(f"{ANSI.dim}{len(lines) + 1:>3} | {ANSI.reset}")
+        except EOFError:
+            break
+        stripped = line.strip()
+        if stripped == ":done":
+            break
+        if stripped == ":cancel":
+            return ""
+        lines.append(line)
+    return "\n".join(lines).strip("\n")
+
+
+# A "lesson view" normalises programming and AI lessons into one shape so the
+# teach -> practice -> auto-advance loop is written once for both tracks.
+
+def _programming_lesson_view(language: str, lesson: dict) -> dict:
+    note = LANGUAGE_NOTES[language]
+    teach = [lesson["objective"]]
+    explanation = LESSON_EXPLANATIONS.get(lesson["topic"])
+    if explanation:
+        teach += [""] + [f"- {point}" for point in explanation]
+    teach += ["", f"In {LEARN_LANGUAGES[language]}: {note['syntax']}"]
+    return {
+        "title": f"Day {lesson['day']}: {lesson['title']} ({LEARN_LANGUAGES[language]})",
+        "subject": LEARN_LANGUAGES[language],
+        "context": lesson["title"],
+        "teach": teach,
+        "example": lesson.get("example", ""),
+        "example_title": note["example_prefix"],
+        "language": language,
+        "quiz": lesson["quiz"],
+        "answers": lesson["answers"],
+        "build": PRACTICE_TASKS.get(
+            lesson["topic"],
+            f"Write a short {LEARN_LANGUAGES[language]} program that demonstrates {lesson['title'].lower()}.",
+        ),
+    }
+
+
+def _ai_lesson_view(module: str, lesson: dict) -> dict:
+    teach = [lesson["objective"], ""] + [f"- {item}" for item in lesson.get("fundamentals", [])]
+    quiz, answers = lesson["quiz"]
+    return {
+        "title": f"{AI_MODULES[module]} - Lesson {lesson['day']}: {lesson['title']}",
+        "subject": AI_MODULES[module],
+        "context": lesson["title"],
+        "teach": teach,
+        "example": lesson.get("example", ""),
+        "example_title": lesson.get("example_title", "Example"),
+        "language": None,
+        "quiz": quiz,
+        "answers": answers,
+        "build": lesson.get("build", "Write down the smallest working version you could build."),
+    }
+
+
+def _teach_lesson(view: dict) -> None:
     ui_blank()
-    ui_box(lesson["example"].splitlines(), title=note["example_prefix"], color=ANSI.green)
+    ui_box(view["teach"], title=view["title"], color=ANSI.cyan)
+    if view.get("example"):
+        ui_blank()
+        ui_box(view["example"].splitlines(), title=view["example_title"], color=ANSI.green)
+
+
+def _quick_check(view: dict, progress: dict, cfg: dict) -> str:
+    """Run the conceptual quick check.
+
+    Answering (right or wrong) returns you to the practice menu so you can also
+    try the code, ask the tutor, or mark the lesson complete when ready. Returns
+    'back' (to the practice menu) or 'skip' (mark complete and move on).
+    """
+    provider = progress.get("ai_provider", "offline")
     ui_blank()
-    ui_box(
-        [f"Explain {lesson['topic'].replace('_', ' ')} in your own words, then write or trace a tiny example."],
-        title="Practice target",
-        color=ANSI.magenta,
+    ui_box([view["quiz"]], title="Quick check", color=ANSI.amber)
+    ui_line("Type your answer  ·  [a] ask the tutor  ·  [s] mark complete & move on  ·  [b] back", color=ANSI.dim)
+    attempts = 0
+    while True:
+        answer = _read_line("> ").strip()
+        cmd = answer.lower()
+        if cmd in ("b", "back"):
+            return "back"
+        if cmd in ("s", "skip"):
+            return "skip"
+        if cmd in ("a", "ask"):
+            ui_line("Ask your tutor:", color=ANSI.cyan)
+            question = _read_line("> ").strip()
+            if question:
+                _show_ai_feedback(_learning_ai_response(provider, question, view["subject"], cfg, progress, context=view["context"]))
+            ui_box([view["quiz"]], title="Quick check", color=ANSI.amber)
+            ui_line("Type your answer, or [s] to mark complete, [b] to go back.", color=ANSI.dim)
+            continue
+        if not answer:
+            continue
+        attempts += 1
+        correct, feedback = _grade_answer(provider, view["quiz"], answer, view["answers"], view["subject"], cfg, progress, view["context"])
+        if correct:
+            ui_line("Correct!", color=ANSI.green, bold=True)
+            if feedback:
+                ui_box(feedback.splitlines(), title="Tutor", color=ANSI.cyan)
+            ui_line("Back to practice — try the code, ask the tutor, or mark complete when you're ready.", color=ANSI.dim)
+            return "back"
+        if attempts == 1:
+            # Let the learner try again before the tutor corrects them.
+            ui_line("Not quite — give it another try.", color=ANSI.amber, bold=True)
+            ui_line("Type [a] for a hint, or [s] to reveal and move on.", color=ANSI.dim)
+        else:
+            ui_line("Not quite.", color=ANSI.amber, bold=True)
+            if feedback:
+                ui_box(feedback.splitlines(), title="Tutor", color=ANSI.cyan)
+            else:
+                # No tutor prose (offline, or AI grading fell back to matching):
+                # reveal a correct answer so the learner is never stuck.
+                ui_box([f"A correct answer is: {view['answers'][0]}.", "Review the lesson above, then try again or [s] to move on."],
+                       title="Answer", color=ANSI.amber)
+
+
+def _coding_practice(view: dict, progress: dict, cfg: dict) -> None:
+    ui_blank()
+    ui_box([view["build"]], title="Coding exercise", color=ANSI.magenta)
+    code = _read_code_block(view.get("language"))
+    if not code.strip():
+        ui_line("No code submitted.", color=ANSI.dim)
+        return
+    provider = progress.get("ai_provider", "offline")
+    if provider == "offline":
+        ui_blank()
+        ui_box(
+            ["Saved. AI review is offline — compare your code against the example above.",
+             "Switch AI settings (Settings menu) to get feedback on your code."],
+            title="Review", color=ANSI.amber,
+        )
+        return
+    lang_label = LEARN_LANGUAGES.get(view.get("language") or "", view["subject"])
+    feedback = _learning_ai_response(
+        provider,
+        f"Exercise: {view['build']}\n\nThe learner wrote this {lang_label} code:\n{code}\n\n"
+        "Give brief, encouraging feedback: what works, what to fix, and whether it meets the goal. "
+        "Do not rewrite the whole solution for them.",
+        view["subject"], cfg, progress, context=view["context"],
     )
+    _show_ai_feedback(feedback, title="Code review")
+
+
+def _practice_lesson(view: dict, progress: dict, cfg: dict, has_prev: bool = False) -> str:
+    """Practice phase after teaching. Returns 'complete', 'prev', or 'back'."""
+    while True:
+        ui_blank()
+        ui_menu("Practice", ["Quick check (answer a question)", "Try the code (write code, get feedback)",
+                             "Ask the tutor a question", "Mark complete & go to next lesson",
+                             "Previous lesson", "Back to menu"])
+        choice = ui_prompt()
+        if choice in ("6", "b", "back"):
+            return "back"
+        if choice in ("5", "p", "prev", "previous"):
+            if has_prev:
+                return "prev"
+            ui_line("This is the first lesson.", color=ANSI.amber)
+            continue
+        if choice in ("4", "s", "skip", "done", "next"):
+            return "complete"
+        if choice in ("3", "a", "ask"):
+            ui_line("Ask your tutor:", color=ANSI.cyan)
+            question = _read_line("> ").strip()
+            if question:
+                _show_ai_feedback(_learning_ai_response(progress.get("ai_provider", "offline"), question, view["subject"], cfg, progress, context=view["context"]))
+            continue
+        if choice in ("2", "code", "try"):
+            _coding_practice(view, progress, cfg)
+            continue
+        if choice in ("1", "q", "quiz", "check", ""):
+            # Answering returns here regardless of correctness; only the explicit
+            # 'mark complete' option (or [s] inside the check) advances the lesson.
+            if _quick_check(view, progress, cfg) == "skip":
+                return "complete"
+            continue
+        ui_line("Pick 1-6.", color=ANSI.amber)
+
+
+def _lesson_session(progress, cfg, *, curriculum, completed_days, make_view,
+                    mark_complete, after_complete, show_all_done) -> None:
+    """Shared teach -> practice loop with forward/backward lesson navigation.
+
+    Tracks position by index so the learner can revisit earlier lessons, not
+    just advance through the next unfinished one.
+    """
+    if not curriculum:
+        return
+    idx = next((i for i, lesson in enumerate(curriculum) if lesson["day"] not in completed_days), None)
+    if idx is None:
+        # Everything is done: show the summary, then drop in at the last lesson
+        # so the learner can still page backward through what they finished.
+        show_all_done()
+        idx = len(curriculum) - 1
+    while True:
+        lesson = curriculum[idx]
+        view = make_view(lesson)
+        _teach_lesson(view)
+        ui_blank()
+        done = "  (completed)" if lesson["day"] in completed_days else ""
+        ui_line(f"Lesson {idx + 1} of {len(curriculum)}{done}", color=ANSI.dim)
+        nav = "Press Enter to practice  ·  [b] back to menu"
+        if idx > 0:
+            nav = "Press Enter to practice  ·  [p] previous lesson  ·  [b] back to menu"
+        ui_line(nav, color=ANSI.dim)
+        cmd = _read_line().strip().lower()
+        if cmd in ("b", "back"):
+            return
+        if cmd in ("p", "prev", "previous"):
+            if idx > 0:
+                idx -= 1
+            continue
+        result = _practice_lesson(view, progress, cfg, has_prev=idx > 0)
+        if result == "back":
+            return
+        if result == "prev":
+            if idx > 0:
+                idx -= 1
+            continue
+        # result == "complete"
+        mark_complete(lesson)
+        completed_days.add(lesson["day"])
+        ui_line(f"Marked complete: {lesson['title']}", color=ANSI.green, bold=True)
+        after_complete()
+        if idx < len(curriculum) - 1:
+            idx += 1
+            continue
+        show_all_done()
+        return
 
 
 def _run_lesson(language: str, progress: dict, cfg: dict) -> None:
+    """Teach -> practice -> navigate through the programming curriculum."""
     lang_progress = progress.setdefault("languages", {}).setdefault(
         language, {"completed_lessons": [], "completed_topics": [], "last_session": ""}
     )
-    lesson = _next_lesson(language, lang_progress)
-    if not lesson:
-        print("\nYou completed the current curriculum for this language.")
-        problems = _unlocked_leetcode(language, limit=10)
-        if problems:
-            print("Next: keep working through unlocked LeetCode problems.")
-            for p in problems:
-                print("  " + _format_problem_line(p, language, load_leetcode_progress()))
-        return
 
-    _print_lesson(language, lesson)
-    while True:
-        ui_menu("Lesson options", ["Quiz", "Ask AI", "Skip and mark complete", "Back"])
-        choice = ui_prompt()
-        if choice in ("4", "b", "back"):
-            return
-        if choice in ("2", "a", "ask"):
-            provider = progress.get("ai_provider", "offline")
-            ui_line("Ask your tutor:", color=ANSI.cyan)
-            question = input(_center_text(f"{ANSI.green}> {ANSI.reset}")).strip()
-            if question:
-                _show_ai_feedback(
-                    _learning_ai_response(provider, question, LEARN_LANGUAGES[language], cfg, progress, context=lesson["title"]),
-                    "Next: press Enter, then choose 1 to retry the quiz, 2 to ask for another hint, 3 to skip, or 4 to go back.",
-                )
-            continue
-        if choice in ("3", "s", "skip"):
-            _mark_lesson_complete(language, lesson, progress)
-            ui_line(f"Marked complete: {lesson['title']}", color=ANSI.green, bold=True)
-            _print_unlocked_after_lesson(language)
-            return
-        if choice in ("1", "q", "quiz", ""):
-            ui_blank()
-            ui_box([lesson["quiz"]], title="Quick check", color=ANSI.amber)
-            answer = input(_center_text(f"{ANSI.green}> {ANSI.reset}")).strip()
-            if _answer_matches(answer, lesson["answers"]):
-                ui_line("Correct.", color=ANSI.green, bold=True)
-                _mark_lesson_complete(language, lesson, progress)
-                _print_unlocked_after_lesson(language)
-                return
-            ui_line("Not quite.", color=ANSI.amber, bold=True)
-            provider = progress.get("ai_provider", "offline")
-            if provider != "offline":
-                _show_ai_feedback(
-                    _learning_ai_response(
-                        provider,
-                        f"The learner answered '{answer}' to: {lesson['quiz']}. Explain the correction.",
-                        LEARN_LANGUAGES[language],
-                        cfg,
-                        progress,
-                        context=lesson["title"],
-                    ),
-                    "Next: press Enter, then choose 1 to try the quiz again or 2 to ask for another hint.",
-                )
-            else:
-                ui_box(["Review the example, then choose 1 to try the quiz again."], title="Next step", color=ANSI.amber)
+    def show_all_done():
+        ui_blank()
+        ui_box([f"You completed every lesson in the {LEARN_LANGUAGES[language]} curriculum.",
+                "Keep going with the unlocked LeetCode problems below."],
+               title="Curriculum complete", color=ANSI.green)
+        _print_unlocked_after_lesson(language)
+
+    _lesson_session(
+        progress, cfg,
+        curriculum=build_learning_curriculum(language),
+        completed_days=set(lang_progress.get("completed_lessons", [])),
+        make_view=lambda lesson: _programming_lesson_view(language, lesson),
+        mark_complete=lambda lesson: _mark_lesson_complete(language, lesson, progress),
+        after_complete=lambda: _print_unlocked_after_lesson(language),
+        show_all_done=show_all_done,
+    )
 
 
 def _print_unlocked_after_lesson(language: str) -> None:
@@ -1993,71 +4894,27 @@ def _print_unlocked_after_lesson(language: str) -> None:
     ui_box([_format_problem_line(p, language, lc_progress) for p in problems], title="Unlocked practice", color=ANSI.green)
 
 
-def _print_ai_lesson(module: str, lesson: dict) -> None:
-    ui_blank()
-    ui_box(
-        [lesson["objective"], ""] + [f"- {item}" for item in lesson.get("fundamentals", [])],
-        title=f"{AI_MODULES[module]} - Lesson {lesson['day']}: {lesson['title']}",
-        color=ANSI.cyan,
-    )
-    ui_blank()
-    ui_box([lesson.get("build", "Write down the smallest working version you could build.")], title="Build practice", color=ANSI.green)
-
-
 def _run_ai_lesson(module: str, progress: dict, cfg: dict) -> None:
+    """Teach -> practice -> navigate through a Principles of AI module."""
     module_progress = progress.setdefault("ai_principles", {}).setdefault(
         module, {"completed_lessons": [], "last_session": ""}
     )
-    lesson = _next_ai_lesson(module, module_progress)
-    if not lesson:
-        ui_box([f"You completed {AI_MODULES[module]}.", "Use Ask AI Tutor for deeper questions, or switch modules from Settings."], title="Module complete", color=ANSI.green)
-        return
 
-    _print_ai_lesson(module, lesson)
-    while True:
-        ui_menu("Lesson options", ["Quiz", "Ask AI", "Skip and mark complete", "Back"])
-        choice = ui_prompt()
-        if choice in ("4", "b", "back"):
-            return
-        if choice in ("2", "a", "ask"):
-            provider = progress.get("ai_provider", "offline")
-            ui_line("Ask your tutor:", color=ANSI.cyan)
-            question = input(_center_text(f"{ANSI.green}> {ANSI.reset}")).strip()
-            if question:
-                _show_ai_feedback(
-                    _learning_ai_response(provider, question, AI_MODULES[module], cfg, progress, context=lesson["title"]),
-                    "Next: press Enter, then choose 1 to retry the module quiz, 2 to ask again, 3 to skip, or 4 to go back.",
-                )
-            continue
-        if choice in ("3", "s", "skip"):
-            _mark_ai_lesson_complete(module, lesson, progress)
-            ui_line(f"Marked complete: {lesson['title']}", color=ANSI.green, bold=True)
-            return
-        if choice in ("1", "q", "quiz", ""):
-            quiz, answers = lesson["quiz"]
-            ui_blank()
-            ui_box([quiz], title="Quick check", color=ANSI.amber)
-            answer = input(_center_text(f"{ANSI.green}> {ANSI.reset}")).strip()
-            if _answer_matches(answer, answers):
-                ui_line("Correct.", color=ANSI.green, bold=True)
-                _mark_ai_lesson_complete(module, lesson, progress)
-                return
-            ui_line("Not quite.", color=ANSI.amber, bold=True)
-            provider = progress.get("ai_provider", "offline")
-            if provider != "offline":
-                _show_ai_feedback(
-                    _learning_ai_response(
-                        provider,
-                        f"The learner answered '{answer}' to: {quiz}. Explain the correction.",
-                        AI_MODULES[module],
-                        cfg,
-                        progress,
-                        context=lesson["title"],
-                    ),
-                    "Next: press Enter, then choose 1 to try the quiz again or 2 to ask for another hint.",
-                )
-            else:
-                ui_box(["Review the fundamentals, then choose 1 to try the quiz again."], title="Next step", color=ANSI.amber)
+    def show_all_done():
+        ui_blank()
+        ui_box([f"You completed {AI_MODULES[module]}.",
+                "Switch modules from Settings, or use Ask AI Tutor for deeper questions."],
+               title="Module complete", color=ANSI.green)
+
+    _lesson_session(
+        progress, cfg,
+        curriculum=_ai_curriculum(module),
+        completed_days=set(module_progress.get("completed_lessons", [])),
+        make_view=lambda lesson: _ai_lesson_view(module, lesson),
+        mark_complete=lambda lesson: _mark_ai_lesson_complete(module, lesson, progress),
+        after_complete=lambda: None,
+        show_all_done=show_all_done,
+    )
 
 
 def _show_learning_progress(language: str, progress: dict) -> None:
@@ -2173,17 +5030,42 @@ def _change_learning_settings(progress: dict, cfg: dict) -> tuple[str, str, str,
         model = _choose_local_model(cfg, progress.get("local_model", ""))
         if model:
             progress["local_model"] = model
+    theme = _prompt_choice(
+        "\nColor theme (for terminal legibility):",
+        {"dark": "Dark background", "light": "Light background"},
+        default=progress.get("theme", "dark"),
+    )
     progress["active_track"] = track
     progress["active_language"] = language
     progress["active_ai_module"] = module
     progress["ai_provider"] = provider
+    progress["theme"] = theme
+    apply_theme(theme)
     save_learning_progress(progress)
     return track, language, module, provider
+
+
+def _print_session_status(track: str, language: str, module: str, provider: str, progress: dict, cfg: dict) -> None:
+    status_lines = [f"Track: {LEARN_TRACKS[track]}"]
+    if track == "programming":
+        status_lines.append(f"Language: {LEARN_LANGUAGES[language]}")
+    else:
+        status_lines.append(f"Module: {AI_MODULES[module]}")
+    status_lines.append(f"AI help: {LEARN_AI_PROVIDERS[provider]}")
+    if provider == "local":
+        status_lines.append(f"Local model: {progress.get('local_model') or '(none selected)'}")
+    ui_blank()
+    ui_box(status_lines, title="Session", color=ANSI.cyan)
+    if provider != "offline" and not _provider_ready(provider, cfg):
+        ui_box(["AI provider is selected but not ready.", "You can still learn offline or change settings."], title="Provider warning", color=ANSI.amber)
 
 
 def handle_learn(args=None) -> None:
     cfg = load_config()
     progress = load_learning_progress()
+    if args and getattr(args, "theme", None):
+        progress["theme"] = args.theme
+    apply_theme(progress.get("theme", "dark"))
     print_learn_banner()
 
     if args and getattr(args, "track", None):
@@ -2204,20 +5086,10 @@ def handle_learn(args=None) -> None:
     provider = _ensure_learning_ai(progress)
     if provider == "local" and not progress.get("local_model"):
         _learning_local_model(progress, cfg, prompt_if_missing=True)
-    if provider == "local" and progress.get("local_model"):
-        cfg["local_model"] = progress["local_model"]
+    if provider == "local":
+        cfg["local_model"] = progress.get("local_model", "")
 
-    status_lines = [f"Track: {LEARN_TRACKS[track]}"]
-    if track == "programming":
-        status_lines.append(f"Language: {LEARN_LANGUAGES[language]}")
-    else:
-        status_lines.append(f"Module: {AI_MODULES[module]}")
-    status_lines.append(f"AI help: {LEARN_AI_PROVIDERS[provider]}")
-    if provider == "local" and progress.get("local_model"):
-        status_lines.append(f"Local model: {progress['local_model']}")
-    ui_box(status_lines, title="Session", color=ANSI.cyan)
-    if provider != "offline" and not _provider_ready(provider, cfg):
-        ui_box(["AI provider is selected but not ready.", "You can still learn offline or change settings."], title="Provider warning", color=ANSI.amber)
+    _print_session_status(track, language, module, provider, progress, cfg)
 
     while True:
         options = ["Today's lesson"]
@@ -2244,12 +5116,11 @@ def handle_learn(args=None) -> None:
                 _show_ai_progress(module, progress)
         elif choice in ("3", "ask"):
             ui_line("Ask your tutor:", color=ANSI.cyan)
-            question = input(_center_text(f"{ANSI.green}> {ANSI.reset}")).strip()
+            question = _read_line("> ").strip()
             if question:
                 subject = LEARN_LANGUAGES[language] if track == "programming" else AI_MODULES[module]
                 _show_ai_feedback(
                     _learning_ai_response(progress.get("ai_provider", "offline"), question, subject, cfg, progress),
-                    "Next: press Enter to return to the main menu.",
                 )
         elif choice in ("4", "progress"):
             if track == "programming":
@@ -2260,8 +5131,9 @@ def handle_learn(args=None) -> None:
             track, language, module, provider = _change_learning_settings(progress, cfg)
             if provider == "local" and not progress.get("local_model"):
                 _learning_local_model(progress, cfg, prompt_if_missing=True)
-            if provider == "local" and progress.get("local_model"):
-                cfg["local_model"] = progress["local_model"]
+            if provider == "local":
+                cfg["local_model"] = progress.get("local_model", "")
+            _print_session_status(track, language, module, provider, progress, cfg)
         else:
             ui_line("Pick 1, 2, 3, 4, 5, or 6.", color=ANSI.amber)
 
@@ -3155,6 +6027,7 @@ def build_parser():
     learn.add_argument("--module", choices=list(AI_MODULES))
     learn.add_argument("--ai", choices=["offline", "local", "claude", "openai", "deepseek"],
                        help="AI helper mode for tutor explanations")
+    learn.add_argument("--theme", choices=["light", "dark"], help="Color theme for terminal legibility")
 
     lc = sub.add_parser("leetcode", help="Practice from the local 200-problem LeetCode catalog")
     lc_sub = lc.add_subparsers(dest="leetcode_cmd", required=True)
@@ -3212,6 +6085,7 @@ def main():
         p.add_argument("--module", choices=list(AI_MODULES))
         p.add_argument("--ai", choices=["offline", "local", "claude", "openai", "deepseek"],
                        help="AI helper mode for tutor explanations")
+        p.add_argument("--theme", choices=["light", "dark"], help="Color theme for terminal legibility")
         p.add_argument("--list-models", action="store_true", help="Show LM Studio models")
         args = p.parse_args()
         if args.list_models:
