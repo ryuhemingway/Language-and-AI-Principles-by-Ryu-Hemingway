@@ -80,24 +80,25 @@ Learn --ai deepseek
 ## 6. LeetCode Practice
 
 ```bash
-brief leetcode stats
-brief leetcode list --unlocked
-brief leetcode next
-brief leetcode show 1
-brief leetcode done 1
+Learn leetcode stats
+Learn leetcode list --unlocked
+Learn leetcode next
+Learn leetcode show 1
+Learn leetcode done 1
 ```
 
-## 7. Daily Brief
+## 7. Resume Later
+
+Progress is saved locally. Start the app again with:
 
 ```bash
-brief
-brief -p claude
-brief -p openai
-brief -p deepseek
-brief -p local
-brief --no-open
+Learn
 ```
 
-The daily brief reads local context, generates an HTML briefing, and saves it to
-`output/`.
+Then continue the active track, switch tracks from Settings, or use direct
+commands such as:
 
+```bash
+Learn --track ai_principles --module rag
+Learn --track programming --language java
+```

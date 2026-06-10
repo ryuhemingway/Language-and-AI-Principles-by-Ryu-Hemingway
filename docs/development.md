@@ -4,8 +4,8 @@
 
 ```bash
 python3 -m pip install -r requirements.txt
-python3 brief.py --help
-python3 brief.py learn --help
+python3 learn.py --help
+python3 learn.py learn --help
 ```
 
 ## Install Launchers
@@ -19,15 +19,14 @@ This creates:
 ```text
 ~/.local/bin/Learn
 ~/.local/bin/learn
-~/.local/bin/brief
 ```
 
 ## Verification
 
 ```bash
-python3 -m py_compile brief.py
+python3 -m py_compile learn.py
 Learn --help
-brief leetcode stats
+Learn leetcode stats
 ```
 
 ## Adding Lessons
@@ -50,4 +49,3 @@ Each Principles of AI lesson should include:
 - `fundamentals`
 - `build`
 - `quiz`
-

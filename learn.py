@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-brief -- Daily intelligence report for Ryu.
+Programming Fundamentals and AI - By Ryu Hemingway.
 
-Just type `brief` for a full daily report, or:
-  brief --week          Weekly retrospective
-  brief --synth claude  Choose synthesizer
-  brief --no-open       Don't open browser
+Run `Learn` to start the interactive tutor, or:
+  Learn leetcode stats
+  Learn leetcode next
+  Learn --track ai_principles --module rag
 """
 
 from __future__ import annotations
@@ -19,8 +19,15 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
+
+warnings.filterwarnings(
+    "ignore",
+    message="urllib3 v2 only supports OpenSSL 1.1.1+",
+    category=Warning,
+)
 
 try:
     import requests
@@ -2262,14 +2269,14 @@ def handle_learn(args=None) -> None:
 # ── Web intelligence (one Claude call with web search) ────────────────────
 
 INTEL_SYSTEM = """\
-You are a research analyst preparing a daily intelligence briefing for one specific person.
+You are a research analyst preparing a daily intelligence summary for one specific person.
 Return ONLY valid JSON (no markdown fences, no commentary).
 Be factual, unbiased, and data-driven. No predictions. No hype.
 Use supplied current context first. If a number, URL, salary, company, or date is not supported by the provided search/current context, use "--" or leave the URL empty.
 """
 
 INTEL_PROMPT = """\
-Research and provide current data for today's briefing.
+Research and provide current data for today's learning summary.
 Use ONLY supplied current context and web search results. Do NOT use training data for prices, salaries, dates, or "current" claims.
 Tailor career advice to the profile and local skill gaps. Ryu is targeting AI engineering, not ML research.
 
@@ -2397,7 +2404,7 @@ def _format_pct(value) -> str:
 def gather_market_quotes() -> dict:
     """Fetch quote data directly so market numbers are not delegated to the LLM."""
     market = {}
-    headers = {"User-Agent": "brief-cli/1.0"}
+    headers = {"User-Agent": "language-ai-principles-cli/1.0"}
     for key, meta in QUOTE_SYMBOLS.items():
         symbol = meta["symbol"]
         try:
@@ -2479,11 +2486,11 @@ VERIFIED MARKET QUOTES:
 
 
 VERIFY_SYSTEM = """\
-You are a fact-checker verifying an AI-generated intelligence briefing against raw web search results.
+You are a fact-checker verifying an AI-generated intelligence summary against raw web search results.
 
 Rules:
 1. Compare every price, percentage, and fact against the search results.
-2. If a value in the briefing contradicts the search results, CORRECT it.
+2. If a value in the summary contradicts the search results, CORRECT it.
 3. If a research URL does NOT appear in the search results, set "url" to "".
 4. If a value cannot be verified from the search results, keep it but add "(unverified)" after it.
 5. NEVER return "not_specified". Use "--" if data is truly unavailable.
@@ -2496,7 +2503,7 @@ def verify_intel(intel, search_ctx, provider, cfg) -> dict | None:
     if not intel or not search_ctx:
         return intel
 
-    user_msg = f"""GENERATED BRIEFING TO VERIFY:
+    user_msg = f"""GENERATED SUMMARY TO VERIFY:
 {json.dumps(intel, indent=2)}
 
 RAW WEB SEARCH RESULTS (ground truth):
@@ -2582,7 +2589,7 @@ Generate today's study plan. Return only the JSON object."""
 # ── Final synthesis (AI) ──────────────────────────────────────────────────
 
 SYNTHESIS_SYSTEM = """\
-You are a strategic advisor writing an executive-quality daily briefing for Ryu.
+You are a strategic advisor writing an executive-quality daily learning summary for Ryu.
 Given the complete daily data, identify the decisions that matter today.
 
 Rules:
@@ -2606,7 +2613,7 @@ def generate_synthesis(all_data, profile, provider, cfg) -> dict:
 COMPLETE DAILY DATA:
 {json.dumps(all_data, indent=2, default=str)}
 
-Write the strategic briefing as bullet points. End with one clear recommendation."""
+Write the strategic summary as bullet points. End with one clear recommendation."""
 
     try:
         raw = _call_ai(SYNTHESIS_SYSTEM, user_msg, provider, cfg)
@@ -2623,7 +2630,7 @@ Write the strategic briefing as bullet points. End with one clear recommendation
 
 # ── HTML renderer ─────────────────────────────────────────────────────────
 
-BRIEF_CSS = """
+REPORT_CSS = """
   :root {
     --bg: #f4f6f8;
     --panel: #ffffff;
@@ -2886,7 +2893,7 @@ BRIEF_CSS = """
 """
 
 def render_html(data: dict, today: str) -> str:
-    """Render all gathered data into a responsive HTML briefing."""
+    """Render all gathered data into a responsive HTML learning summary."""
 
     anki = data.get("anki")
     git = data.get("git", [])
@@ -3096,21 +3103,21 @@ def render_html(data: dict, today: str) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BRIEF &mdash; {today}</title>
+<title>Learning Summary &mdash; {today}</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-{BRIEF_CSS}
+{REPORT_CSS}
 </style>
 </head>
 <body>
 <div class="page">
 <header>
-  <div><span class="kicker">Daily Operating Brief</span><h1>Ryu Hemingway</h1></div>
+  <div><span class="kicker">Daily Learning Summary</span><h1>Ryu Hemingway</h1></div>
   <time>{today}</time>
 </header>
 {body}
 <footer>
-  GENERATED BY BRIEF.PY // PROVIDER: {_escape(data.get("synthesizer_used", "CLAUDE")).upper()}
+  GENERATED BY LEARN.PY // PROVIDER: {_escape(data.get("synthesizer_used", "CLAUDE")).upper()}
 </footer>
 </div>
 </body>
@@ -3131,13 +3138,13 @@ def _list_lm_studio(cfg):
 
 def build_parser():
     p = argparse.ArgumentParser(
-        description="Daily intelligence brief.",
-        epilog="Run with no arguments for interactive mode.",
+        description="Programming Fundamentals and AI learning CLI.",
+        epilog="Run with no arguments for the interactive tutor.",
     )
     p.add_argument("-p", "--provider", choices=["claude", "openai", "deepseek", "local"],
-                   help="AI provider for all analysis")
-    p.add_argument("--no-open", action="store_true", help="Don't open in browser")
-    p.add_argument("--output", help="Custom output file path")
+                   help=argparse.SUPPRESS)
+    p.add_argument("--no-open", action="store_true", help=argparse.SUPPRESS)
+    p.add_argument("--output", help=argparse.SUPPRESS)
     p.add_argument("--list-models", action="store_true", help="Show LM Studio models")
 
     sub = p.add_subparsers(dest="command")
@@ -3192,185 +3199,50 @@ def build_parser():
 
 def main():
     invoked_as = Path(sys.argv[0]).name.lower()
-    if invoked_as == "learn":
+    tutor_flags = {"--track", "-l", "--language", "--module", "--ai", "--list-models", "-h", "--help"}
+    full_cli_commands = {"learn", "leetcode"}
+    if invoked_as in {"learn", "learn.py"} and (
+        len(sys.argv) == 1
+        or sys.argv[1] in tutor_flags
+        or sys.argv[1] not in full_cli_commands
+    ):
         p = argparse.ArgumentParser(description="Interactive programming tutor.")
         p.add_argument("--track", choices=["programming", "ai_principles"])
         p.add_argument("-l", "--language", choices=["python", "c", "java"])
         p.add_argument("--module", choices=list(AI_MODULES))
         p.add_argument("--ai", choices=["offline", "local", "claude", "openai", "deepseek"],
                        help="AI helper mode for tutor explanations")
-        handle_learn(p.parse_args())
+        p.add_argument("--list-models", action="store_true", help="Show LM Studio models")
+        args = p.parse_args()
+        if args.list_models:
+            cfg = load_config()
+            models = _list_lm_studio(cfg)
+            if models:
+                ui_box([f"- {m}" for m in models], title="LM Studio models", color=ANSI.cyan)
+            else:
+                ui_box(["No models found. Is LM Studio running?"], title="LM Studio models", color=ANSI.amber)
+            return
+        handle_learn(args)
         return
 
     args = build_parser().parse_args()
-    if args.command == "learn":
-        handle_learn(args)
-        return
-    if args.command == "leetcode":
-        handle_leetcode(args)
-        return
-
-    cfg = load_config()
-    profile = load_profile()
-    today_str = datetime.now().strftime("%A, %B %d, %Y")
-    today_file = datetime.now().strftime("%Y-%m-%d")
-
     if args.list_models:
+        cfg = load_config()
         models = _list_lm_studio(cfg)
         if models:
             ui_box([f"- {m}" for m in models], title="LM Studio models", color=ANSI.cyan)
         else:
             ui_box(["No models found. Is LM Studio running?"], title="LM Studio models", color=ANSI.amber)
         return
-
-    ui_blank()
-    ui_box([today_str], title="Daily Brief", color=ANSI.cyan)
-
-    # ── Provider picker ──
-    if args.provider:
-        provider = args.provider
-    else:
-        ui_menu("AI provider for this brief", [
-            "Claude (includes live web search)",
-            "OpenAI",
-            "DeepSeek",
-            "Local (LM Studio)",
-        ])
-        while True:
-            ch = ui_prompt()
-            if ch in ("1", "2", "3", "4", "c", "o", "d", "l"):
-                break
-            ui_line("Pick 1, 2, 3, or 4.", color=ANSI.amber)
-        provider = {
-            "1": "claude", "2": "openai", "3": "deepseek", "4": "local",
-            "c": "claude", "o": "openai", "d": "deepseek", "l": "local",
-        }[ch]
-
-    # If local, verify model is set
-    if provider == "local" and not cfg.get("local_model"):
-        models = _list_lm_studio(cfg)
-        if models:
-            ui_box([f"[{i}] {m}" for i, m in enumerate(models, 1)], title="Available models", color=ANSI.cyan)
-            while True:
-                pick = ui_prompt()
-                try:
-                    cfg["local_model"] = models[int(pick) - 1]
-                    break
-                except (ValueError, IndexError):
-                    ui_line("Pick a number.", color=ANSI.amber)
-        else:
-            ui_line("Enter model name:", color=ANSI.cyan)
-            m = input(_center_text(f"{ANSI.green}> {ANSI.reset}")).strip()
-            if not m:
-                ui_line("No model.", color=ANSI.amber); return
-            cfg["local_model"] = m
-
-    ui_blank()
-    ui_line(f"Running with {PROVIDER_LABELS[provider]}...", color=ANSI.green, bold=True)
-    ui_blank()
-
-    all_data = {"synthesizer_used": PROVIDER_LABELS[provider]}
-    search_ctx = ""
-
-    # 1. Anki
-    sys.stdout.write("  [1/7] Anki Analytics .......... ")
-    sys.stdout.flush()
-    anki = gather_anki(cfg)
-    all_data["anki"] = anki
-    if anki:
-        print(f"✓ {anki['due']} due, {anki['reviewed_today']} reviewed")
-    else:
-        print("- skipped (Anki not running)")
-
-    # 2. Calendar
-    sys.stdout.write("  [2/7] Calendar ................ ")
-    sys.stdout.flush()
-    deadlines = gather_deadlines(cfg)
-    all_data["deadlines"] = deadlines
-    cal_count = sum(1 for d in deadlines if d.get("source") == "calendar")
-    urgent = [d for d in deadlines if d["urgency"] in ("critical", "overdue")]
-    if deadlines:
-        print(f"✓ {len(deadlines)} events ({cal_count} from Calendar, {len(urgent)} urgent)")
-    else:
-        print("- no events found")
-
-    skills = gather_skills()
-    all_data["skills"] = skills
-
-    # 3. Web intelligence
-    sys.stdout.write("  [3/7] Web Intelligence ........ ")
-    sys.stdout.flush()
-    market_quotes = gather_market_quotes()
-    if provider != "claude":
-        search_ctx = _ddg_search(DDG_QUERIES)
-    intel = gather_web_intel(
-        provider,
-        cfg,
-        search_ctx,
-        profile=profile,
-        skills=skills,
-        market_quotes=market_quotes,
-    )
-    all_data["intel"] = intel
-    if intel:
-        n_research = len(intel.get("research", []))
-        quote_count = len([k for k in market_quotes if k != "notable"])
-        print(f"✓ {quote_count} quotes + jobs + {n_research} research items")
-    else:
-        print("- failed (check API key / connection)")
-
-    # 4. Study plan
-    sys.stdout.write("  [4/7] Study Optimizer ......... ")
-    sys.stdout.flush()
-    plan = generate_study_plan(anki, deadlines, profile, skills, provider, cfg)
-    all_data["study_plan"] = plan
-    n_items = len(plan.get("plan", [])) if plan else 0
-    print(f"✓ {n_items} priorities" if plan else "- skipped")
-
-    # 5. Synthesis
-    sys.stdout.write("  [5/7] Synthesis ............... ")
-    sys.stdout.flush()
-    synthesis = generate_synthesis(all_data, profile, provider, cfg)
-    all_data["synthesis"] = synthesis
-    print("✓" if synthesis else "- skipped")
-
-    # 6. Fact-check
-    sys.stdout.write("  [6/7] Fact Check .............. ")
-    sys.stdout.flush()
-    if intel and search_ctx:
-        verified = verify_intel(intel, search_ctx, provider, cfg)
-        if verified and verified is not intel:
-            all_data["intel"] = _merge_market_quotes(verified, market_quotes)
-            print("✓ verified against search results")
-        else:
-            print("- no corrections needed")
-    elif intel and provider == "claude":
-        print("- skipped (Claude uses live web search)")
-    else:
-        print("- skipped (no data to verify)")
-
-    # 7. Render
-    sys.stdout.write("  [7/7] Rendering ............... ")
-    sys.stdout.flush()
-    html = render_html(all_data, today_str)
-
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    if args.output:
-        out_path = Path(args.output)
-    else:
-        out_path = OUTPUT_DIR / f"brief_{today_file}.html"
-
-    out_path.write_text(html, encoding="utf-8")
-    print(f"✓ {out_path.name}")
-
-    print(f"\n  Saved to {out_path}")
-
-    if not args.no_open and cfg.get("open_browser", True):
-        import webbrowser
-        webbrowser.open(f"file://{out_path.resolve()}")
-        print("  Opened in browser.\n")
-    else:
-        print()
+    if args.command is None:
+        handle_learn(args)
+        return
+    if args.command == "learn":
+        handle_learn(args)
+        return
+    if args.command == "leetcode":
+        handle_leetcode(args)
+        return
 
 
 if __name__ == "__main__":

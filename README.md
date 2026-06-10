@@ -1,8 +1,8 @@
 # Programming Fundamentals and AI
 
 **Programming Fundamentals and AI - By Ryu Hemingway** is a terminal learning
-app for programming fundamentals, AI engineering principles, LeetCode practice,
-and daily AI-assisted study briefs.
+app for programming fundamentals, AI engineering principles, and LeetCode
+practice.
 
 The app is designed to work offline first, then optionally use local or cloud
 AI assistance when you want explanations, hints, or review.
@@ -18,14 +18,13 @@ Learn
 - Principles of AI track with 12 modules
 - 200-problem LeetCode catalog with concept-gated unlocks
 - Optional AI help from LM Studio, Claude, OpenAI, or DeepSeek
-- Daily brief generator for study planning, Anki, calendar, market data, and AI research
 - Local progress tracking so you can resume where you left off
 
 ## Quick Start
 
 ```bash
 git clone <your-repo-url>
-cd "Brief CLI"
+cd "Language and AI Principles by Ryu Hemingway"
 python3 -m pip install -r requirements.txt
 bash scripts/install.sh
 Learn
@@ -51,10 +50,10 @@ Learn --track ai_principles --module harnesses
 Learn --track ai_principles --module agents
 Learn --track ai_principles --module locallm
 
-brief leetcode stats
-brief leetcode next
-brief leetcode show 1
-brief --no-open
+Learn leetcode stats
+Learn leetcode next
+Learn leetcode show 1
+Learn --help
 ```
 
 ## Documentation
@@ -66,7 +65,6 @@ brief --no-open
 - [Programming Track](docs/programming-track.md)
 - [Principles of AI Track](docs/principles-of-ai.md)
 - [LeetCode Practice](docs/leetcode.md)
-- [Daily Brief](docs/daily-brief.md)
 - [Development Notes](docs/development.md)
 - [Security](SECURITY.md)
 
@@ -91,7 +89,7 @@ brief --no-open
 | --- | --- | --- | --- |
 | Offline | No | No | Lessons, quizzes, and local progress only |
 | Local LM Studio | No after model download | No | Runs local models through LM Studio's localhost API |
-| Claude | Yes | Anthropic API key | Strong cloud tutor and brief synthesis |
+| Claude | Yes | Anthropic API key | Strong cloud tutor assistance |
 | OpenAI | Yes | OpenAI API key | Cloud model support via OpenAI-compatible chat endpoint |
 | DeepSeek | Yes | DeepSeek API key | Cloud model support using OpenAI-compatible API format |
 
@@ -111,17 +109,17 @@ export OPENAI_API_KEY="..."
 export DEEPSEEK_API_KEY="..."
 ```
 
-Do not commit `config.json`, `profile.md`, generated briefs, or saved progress.
+Do not commit `config.json`, `profile.md`, generated output, or saved progress.
 
 ## Project Layout
 
 ```text
-Brief CLI/
-  brief.py                    Main CLI app
+Language and AI Principles by Ryu Hemingway/
+  learn.py                    Main CLI app
   config.example.json          Public config template
   data/leetcode_catalog.json   200-problem practice catalog
   docs/                        User and curriculum documentation
-  scripts/install.sh           Installs Learn/learn/brief launchers
+  scripts/install.sh           Installs Learn/learn launchers
   requirements.txt             Python dependencies
 ```
 
@@ -129,4 +127,3 @@ Brief CLI/
 
 No license has been selected yet. Add a license before distributing this
 publicly or accepting external contributions.
-
