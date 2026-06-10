@@ -1,0 +1,30 @@
+# Secrets and local identity
+config.json
+profile.md
+deadlines.json
+skills.json
+.env
+.env.*
+
+# Generated runtime data
+output/
+data/learning_progress.json
+data/leetcode_progress.json
+
+# Python/cache files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Local virtual environments
+.venv/
+venv/
+env/
+
