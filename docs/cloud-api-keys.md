@@ -77,10 +77,18 @@ Config fields:
 ```json
 {
   "deepseek_api_key": "your_key_here",
-  "deepseek_model": "deepseek-chat",
+  "deepseek_model": "deepseek-v4-flash",
   "deepseek_endpoint": "https://api.deepseek.com/v1/chat/completions"
 }
 ```
+
+The Learn setup flow only allows supported DeepSeek choices:
+
+- `deepseek-v4-flash`
+- `deepseek-v4-pro`
+
+Legacy aliases such as `deepseek-chat` are normalized and shown in the session
+header so you know the exact model ID being used.
 
 Official docs:
 
@@ -93,4 +101,3 @@ Official docs:
 - Prefer environment variables for shared machines.
 - Revoke keys immediately if they are exposed.
 - Use separate keys for development and production.
-

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="744" viewBox="0 0 1600 744" role="img" aria-label="learn-onboarding-settings.svg">
+  <rect width="1600" height="744" rx="18" fill="#111820"/>
+  <rect x="0" y="0" width="1600" height="42" rx="18" fill="#141d24"/>
+  <circle cx="28" cy="21" r="7" fill="#ff5f57"/>
+  <circle cx="52" cy="21" r="7" fill="#febc2e"/>
+  <circle cx="76" cy="21" r="7" fill="#28c840"/>
+  <text x="48" y="78" fill="#8cff8c" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">Set up your first session</text>
+<text x="48" y="109" fill="#e8edf2" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22"></text>
+<text x="48" y="140" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">╭──────────────────────────── Learning track ────────────────────────────╮</text>
+<text x="48" y="171" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [1] Programming languages  default                                      │</text>
+<text x="48" y="202" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [2] Principles of AI                                                    │</text>
+<text x="48" y="233" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">╰────────────────────────────────────────────────────────────────────────╯</text>
+<text x="48" y="264" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">╭──────────────────────────────── Language ──────────────────────────────╮</text>
+<text x="48" y="295" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [1] Python  default                                                     │</text>
+<text x="48" y="326" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [2] C                                                                   │</text>
+<text x="48" y="357" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [3] Java                                                                │</text>
+<text x="48" y="388" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">╰────────────────────────────────────────────────────────────────────────╯</text>
+<text x="48" y="419" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">╭────────────────────────────── AI assistance ───────────────────────────╮</text>
+<text x="48" y="450" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [1] Offline only                                                        │</text>
+<text x="48" y="481" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [2] Local AI (LM Studio)                                                │</text>
+<text x="48" y="512" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [3] Claude  [4] OpenAI  [5] DeepSeek                                    │</text>
+<text x="48" y="543" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">╰────────────────────────────────────────────────────────────────────────╯</text>
+<text x="48" y="574" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">╭────────────────────────────── DeepSeek model ──────────────────────────╮</text>
+<text x="48" y="605" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [1] DeepSeek V4 Flash (deepseek-v4-flash)  default                      │</text>
+<text x="48" y="636" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">│ [2] DeepSeek V4 Pro (deepseek-v4-pro)                                   │</text>
+<text x="48" y="667" fill="#55f6ff" font-family="JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace" font-size="22">╰────────────────────────────────────────────────────────────────────────╯</text>
+</svg>

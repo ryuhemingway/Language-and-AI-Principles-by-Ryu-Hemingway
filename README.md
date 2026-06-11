@@ -13,11 +13,11 @@ Learn
 
 ## What It Includes
 
-- Interactive terminal tutor with centered ANSI panels and numbered menus
+- Interactive terminal tutor with centered ANSI panels, boxed input, and a Ctrl+P command palette
 - Programming track for Python, C, and Java
 - Principles of AI track with 12 modules
 - 200-problem LeetCode catalog with concept-gated unlocks
-- Optional AI help from LM Studio, Claude, OpenAI, or DeepSeek
+- Optional AI help from LM Studio, Claude, OpenAI, or DeepSeek with exact model identity shown in-session
 - Local progress tracking so you can resume where you left off
 
 ## Quick Start
@@ -28,6 +28,59 @@ cd "Language and AI Principles by Ryu Hemingway"
 python3 -m pip install -r requirements.txt
 bash scripts/install.sh
 Learn
+```
+
+First launch walks through the setup choices. Later launches show a compact
+resume header with the active track, next lesson, provider, exact model ID, and
+the next action. Press Enter to resume, or Ctrl+P to open commands.
+
+## Demo Path
+
+Run the built-in demo without touching your real progress:
+
+```bash
+bash scripts/demo.sh
+```
+
+It walks through first-run setup, opens a Python lesson, answers the quick
+check, submits a small program, and shows deterministic code review.
+
+## Screenshots
+
+**Resume screen and primary command line**
+
+![Resume screen with compact session header](docs/assets/learn-home.svg)
+
+**First-run setup, settings, and exact model selection**
+
+![First-run setup and model settings](docs/assets/learn-onboarding-settings.svg)
+
+**Available courses and modules**
+
+![Programming and Principles of AI course map](docs/assets/learn-course-map.svg)
+
+**Lesson flow**
+
+![Lecture and language-specific example](docs/assets/learn-programming-lesson.svg)
+
+**Question, coding problem, and deterministic review**
+
+![Question answer, coding problem, and hard-check review](docs/assets/learn-qa-code-review.svg)
+
+**Command palette**
+
+![Ctrl+P command palette](docs/assets/learn-command-palette.svg)
+
+## Screen Recording
+
+The animated walkthrough below shows the intended first-run to review loop.
+
+![Animated terminal walkthrough](docs/assets/learn-demo-walkthrough.svg)
+
+To produce a real terminal recording locally, run the scripted path:
+
+```bash
+bash scripts/demo.sh
 ```
 
 If `~/.local/bin` is not on your shell path, add this to `~/.zshrc` or
@@ -91,7 +144,18 @@ Learn --help
 | Local LM Studio | No after model download | No | Runs local models through LM Studio's localhost API |
 | Claude | Yes | Anthropic API key | Strong cloud tutor assistance |
 | OpenAI | Yes | OpenAI API key | Cloud model support via OpenAI-compatible chat endpoint |
-| DeepSeek | Yes | DeepSeek API key | Cloud model support using OpenAI-compatible API format |
+| DeepSeek | Yes | DeepSeek API key | Choose `deepseek-v4-flash` or `deepseek-v4-pro`; legacy aliases are shown explicitly |
+
+## Development Checks
+
+```bash
+python3 -m py_compile learn.py scripts/export_course_content.py scripts/generate_docs_media.py scripts/terminal_smoke.py
+python3 scripts/terminal_smoke.py
+bash scripts/check_generated_docs.sh
+```
+
+CI runs the same checks and fails if generated course docs or screenshot assets
+drift from their generators.
 
 ## Repository Safety
 
@@ -119,7 +183,12 @@ Language and AI Principles by Ryu Hemingway/
   config.example.json          Public config template
   data/leetcode_catalog.json   200-problem practice catalog
   docs/                        User and curriculum documentation
+  docs/assets/                 README/HOWTO screenshots and demo SVG
+  .github/workflows/ci.yml      Compile, smoke, and generated-doc checks
   scripts/install.sh           Installs Learn/learn launchers
+  scripts/demo.sh               Short scripted demo
+  scripts/generate_docs_media.py Generates docs screenshot assets
+  scripts/terminal_smoke.py     Automated terminal smoke tests
   requirements.txt             Python dependencies
 ```
 

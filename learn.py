@@ -39,15 +39,16 @@ except ImportError:
 # ── Config & data loading ─────────────────────────────────────────────────
 
 BASE = Path(__file__).resolve().parent
-CONFIG_PATH = BASE / "config.json"
+CONFIG_PATH = Path(os.environ.get("LEARN_CONFIG_PATH", BASE / "config.json")).expanduser()
 PROFILE_PATH = BASE / "profile.md"
 DEADLINES_PATH = BASE / "deadlines.json"
 SKILLS_PATH = BASE / "skills.json"
 OUTPUT_DIR = BASE / "output"
 DATA_DIR = BASE / "data"
+PROGRESS_DIR = Path(os.environ.get("LEARN_PROGRESS_DIR", DATA_DIR)).expanduser()
 LEETCODE_CATALOG_PATH = DATA_DIR / "leetcode_catalog.json"
-LEETCODE_PROGRESS_PATH = DATA_DIR / "leetcode_progress.json"
-LEARNING_PROGRESS_PATH = DATA_DIR / "learning_progress.json"
+LEETCODE_PROGRESS_PATH = PROGRESS_DIR / "leetcode_progress.json"
+LEARNING_PROGRESS_PATH = PROGRESS_DIR / "learning_progress.json"
 
 
 ANSI_ENABLED = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
@@ -57,8 +58,8 @@ class ANSI:
     reset = "\033[0m" if ANSI_ENABLED else ""
     bold = "\033[1m" if ANSI_ENABLED else ""
     dim = "\033[2m" if ANSI_ENABLED else ""
-    cyan = "\033[36m" if ANSI_ENABLED else ""
-    green = "\033[32m" if ANSI_ENABLED else ""
+    cyan = "\033[96m" if ANSI_ENABLED else ""
+    green = "\033[92m" if ANSI_ENABLED else ""
     amber = "\033[33m" if ANSI_ENABLED else ""
     red = "\033[31m" if ANSI_ENABLED else ""
     magenta = "\033[35m" if ANSI_ENABLED else ""
@@ -68,9 +69,9 @@ class ANSI:
 # foregrounds that stay legible on a light background and drops dim (which is
 # nearly invisible on white) to a readable gray.
 THEMES = {
-    "dark": {"cyan": "\033[36m", "green": "\033[32m", "amber": "\033[33m",
+    "dark": {"cyan": "\033[96m", "green": "\033[92m", "amber": "\033[33m",
              "red": "\033[31m", "magenta": "\033[35m", "dim": "\033[2m"},
-    "light": {"cyan": "\033[34m", "green": "\033[38;5;28m", "amber": "\033[38;5;130m",
+    "light": {"cyan": "\033[96m", "green": "\033[92m", "amber": "\033[38;5;130m",
               "red": "\033[31m", "magenta": "\033[35m", "dim": "\033[38;5;240m"},
 }
 
@@ -161,58 +162,149 @@ def ui_box(lines: list[str], title: str = "", color: str = ANSI.cyan) -> None:
 
 
 def ui_menu(title: str, options: list[str]) -> None:
-    ui_box([f"[{i}] {option}" for i, option in enumerate(options, 1)], title=title, color=ANSI.magenta)
+    ui_box([f"[{i}] {option}" for i, option in enumerate(options, 1)], title=title, color=ANSI.cyan)
+
+
+def _boxed_input_geometry() -> tuple[int, int]:
+    width = min(84, _term_width() - 8)
+    left = max(0, (shutil.get_terminal_size((96, 24)).columns - width) // 2)
+    return width, left
+
+
+def _read_boxed_line(title: str = "Input", submit_on_ctrl_p: bool = False, toolbar: str = "") -> str:
+    """Read one line inside a centered box. Ctrl-D/EOF exits cleanly."""
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        width, left = _boxed_input_geometry()
+        inner = width - 4
+        ui_line(f"╭{'─' * inner}╮", color=ANSI.green)
+        try:
+            value = input(f"{' ' * left}{ANSI.green}│ > {ANSI.reset}")
+        except EOFError:
+            print()
+            raise SystemExit(0)
+        print()
+        ui_line(f"╰{'─' * inner}╯", color=ANSI.green)
+        return value
+
+    try:
+        from prompt_toolkit.application import Application
+        from prompt_toolkit.key_binding import KeyBindings
+        from prompt_toolkit.layout import Layout
+        from prompt_toolkit.layout.containers import HSplit, VSplit, Window
+        from prompt_toolkit.layout.controls import FormattedTextControl
+        from prompt_toolkit.layout.dimension import Dimension
+        from prompt_toolkit.widgets import Frame, TextArea
+    except ImportError:
+        width, left = _boxed_input_geometry()
+        inner = width - 4
+        ui_line(f"╭{'─' * inner}╮", color=ANSI.green)
+        try:
+            value = input(f"{' ' * left}{ANSI.green}│ > {ANSI.reset}")
+        except EOFError:
+            print()
+            raise SystemExit(0)
+        print()
+        ui_line(f"╰{'─' * inner}╯", color=ANSI.green)
+        return value
+
+    width, left = _boxed_input_geometry()
+    text_area = TextArea(
+        multiline=False,
+        wrap_lines=False,
+        prompt="> ",
+        width=Dimension.exact(width - 4),
+        height=1,
+    )
+    result: dict[str, str] = {"text": ""}
+    bindings = KeyBindings()
+
+    @bindings.add("enter")
+    def _(event):
+        result["text"] = text_area.text
+        event.app.exit()
+
+    @bindings.add("c-p")
+    def _(event):
+        if submit_on_ctrl_p:
+            result["text"] = ":commands"
+            event.app.exit()
+
+    @bindings.add("c-c")
+    def _(event):
+        result["text"] = "quit"
+        event.app.exit()
+
+    body_rows = [Frame(text_area, title=title)]
+    if toolbar:
+        body_rows.append(Window(FormattedTextControl(toolbar), height=1, width=Dimension.exact(width)))
+    body = VSplit([
+        Window(width=Dimension.exact(left)),
+        HSplit(body_rows),
+    ])
+    app: Application = Application(
+        layout=Layout(body, focused_element=text_area),
+        key_bindings=bindings,
+        mouse_support=True,
+        full_screen=False,
+    )
+    try:
+        app.run()
+    except (KeyboardInterrupt, EOFError):
+        print()
+        raise SystemExit(0)
+    return result["text"]
 
 
 def _read_line(label: str = "> ") -> str:
-    """Read one line of input, centered. Treats EOF (Ctrl-D) as a clean quit."""
-    try:
-        return input(_center_text(f"{ANSI.green}{label}{ANSI.reset}"))
-    except EOFError:
-        print()
-        raise SystemExit(0)
+    """Read one boxed line of input. The label is kept for call-site compatibility."""
+    title = "Input" if label.strip() in ("", ">") else label.strip().rstrip(":")
+    return _read_boxed_line(title=title or "Input")
 
 
 def ui_prompt() -> str:
     return _read_line().strip().lower()
 
 
+def _read_command_line() -> str:
+    """Read the home command line. Ctrl-P returns the command-palette sentinel."""
+    return _read_boxed_line(
+        title="Command",
+        submit_on_ctrl_p=True,
+        toolbar=" Enter: today's lesson | Ctrl+P: commands | type a tutor question ",
+    ).strip()
+
+
+def _command_palette(title: str, options: list[tuple[str, str, tuple[str, ...]]]) -> str:
+    ui_menu(title, [label for _key, label, _aliases in options])
+    raw = ui_prompt()
+    if not raw:
+        return ""
+    if raw.isdigit():
+        idx = int(raw) - 1
+        if 0 <= idx < len(options):
+            return options[idx][0]
+    for key, _label, aliases in options:
+        if raw == key or raw in aliases:
+            return key
+    ui_line("Command not found.", color=ANSI.amber)
+    return ""
+
+
 def print_learn_banner() -> None:
     ui_blank()
     art = [
-        " █████╗ ██╗    ██╗███╗   ███╗██╗     ",
-        "██╔══██╗██║   ██╔╝████╗ ████║██║     ",
-        "███████║██║  ██╔╝ ██╔████╔██║██║     ",
-        "██╔══██║██║ ██╔╝  ██║╚██╔╝██║██║     ",
-        "██║  ██║██║██╔╝   ██║ ╚═╝ ██║███████╗",
-        "╚═╝  ╚═╝╚═╝╚═╝    ╚═╝     ╚═╝╚══════╝",
-        "",
-        "██████╗ ██████╗  ██████╗  ██████╗ ██████╗  █████╗ ███╗   ███╗███╗   ███╗██╗███╗   ██╗ ██████╗ ",
-        "██╔══██╗██╔══██╗██╔═══██╗██╔════╝ ██╔══██╗██╔══██╗████╗ ████║████╗ ████║██║████╗  ██║██╔════╝ ",
-        "██████╔╝██████╔╝██║   ██║██║  ███╗██████╔╝███████║██╔████╔██║██╔████╔██║██║██╔██╗ ██║██║  ███╗",
-        "██╔═══╝ ██╔══██╗██║   ██║██║   ██║██╔══██╗██╔══██║██║╚██╔╝██║██║╚██╔╝██║██║██║╚██╗██║██║   ██║",
-        "██║     ██║  ██║╚██████╔╝╚██████╔╝██║  ██║██║  ██║██║ ╚═╝ ██║██║ ╚═╝ ██║██║██║ ╚████║╚██████╔╝",
-        "╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ",
-        "",
-        " █████╗ ███╗   ██╗██████╗ ",
-        "██╔══██╗████╗  ██║██╔══██╗",
-        "███████║██╔██╗ ██║██║  ██║",
-        "██╔══██║██║╚██╗██║██║  ██║",
-        "██║  ██║██║ ╚████║██████╔╝",
-        "╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ",
-        "",
-        "███████╗██╗   ██╗███╗   ██╗██████╗  █████╗ ███╗   ███╗███████╗███╗   ██╗████████╗ █████╗ ██╗     ███████╗",
-        "██╔════╝██║   ██║████╗  ██║██╔══██╗██╔══██╗████╗ ████║██╔════╝████╗  ██║╚══██╔══╝██╔══██╗██║     ██╔════╝",
-        "█████╗  ██║   ██║██╔██╗ ██║██║  ██║███████║██╔████╔██║█████╗  ██╔██╗ ██║   ██║   ███████║██║     ███████╗",
-        "██╔══╝  ██║   ██║██║╚██╗██║██║  ██║██╔══██║██║╚██╔╝██║██╔══╝  ██║╚██╗██║   ██║   ██╔══██║██║     ╚════██║",
-        "██║     ╚██████╔╝██║ ╚████║██████╔╝██║  ██║██║ ╚═╝ ██║███████╗██║ ╚████║   ██║   ██║  ██║███████╗███████║",
-        "╚═╝      ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝",
+        " █████╗ ██╗    ███████╗███╗   ██╗ ██████╗ ██╗███╗   ██╗███████╗███████╗██████╗ ██╗███╗   ██╗ ██████╗ ",
+        "██╔══██╗██║    ██╔════╝████╗  ██║██╔════╝ ██║████╗  ██║██╔════╝██╔════╝██╔══██╗██║████╗  ██║██╔════╝ ",
+        "███████║██║    █████╗  ██╔██╗ ██║██║  ███╗██║██╔██╗ ██║█████╗  █████╗  ██████╔╝██║██╔██╗ ██║██║  ███╗",
+        "██╔══██║██║    ██╔══╝  ██║╚██╗██║██║   ██║██║██║╚██╗██║██╔══╝  ██╔══╝  ██╔══██╗██║██║╚██╗██║██║   ██║",
+        "██║  ██║██║    ███████╗██║ ╚████║╚██████╔╝██║██║ ╚████║███████╗███████╗██║  ██║██║██║ ╚████║╚██████╔╝",
+        "╚═╝  ╚═╝╚═╝    ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ",
     ]
     for line in art:
         ui_line(line, color=ANSI.cyan, bold=True)
     ui_blank()
-    ui_line("Programming Fundamentals and AI - By Ryu Hemingway", color=ANSI.green, bold=True)
-    ui_line("Learn programming, AI systems, and LeetCode practice from one terminal.", color=ANSI.dim)
+    ui_line("Programming, ML, RAG, evals, and agentic systems - By Ryu Hemingway", color=ANSI.green, bold=True)
+    ui_line("Learn programming foundations and applied AI engineering from one terminal.", color=ANSI.dim)
     ui_rule()
 
 
@@ -229,6 +321,36 @@ LEARN_AI_PROVIDERS = {
     "claude": "Claude",
     "openai": "OpenAI",
     "deepseek": "DeepSeek",
+}
+
+
+AI_PROVIDER_MODEL_KEYS = {
+    "local": "local_model",
+    "claude": "anthropic_model",
+    "openai": "openai_model",
+    "deepseek": "deepseek_model",
+}
+
+
+DEEPSEEK_MODELS = {
+    "deepseek-v4-flash": "DeepSeek V4 Flash",
+    "deepseek-v4-pro": "DeepSeek V4 Pro",
+}
+
+
+DEEPSEEK_LEGACY_MODEL_ALIASES = {
+    "deepseek-chat": "deepseek-v4-flash",
+    "deepseek-reasoner": "deepseek-v4-flash",
+}
+
+
+KNOWN_PROVIDER_MODELS = {
+    "claude": {
+        "claude-sonnet-4-20250514": "Claude Sonnet 4",
+    },
+    "openai": {
+        "gpt-4.1-mini": "GPT-4.1 mini",
+    },
 }
 
 
@@ -3950,7 +4072,7 @@ def load_leetcode_progress() -> dict:
 
 
 def save_leetcode_progress(progress: dict) -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
     LEETCODE_PROGRESS_PATH.write_text(
         json.dumps(progress, indent=2) + "\n",
         encoding="utf-8",
@@ -4198,6 +4320,8 @@ def load_learning_progress() -> dict:
     progress.setdefault("ai_provider", "")
     progress.setdefault("local_model", "")
     progress.setdefault("theme", "dark")
+    if "onboarding_complete" not in progress:
+        progress["onboarding_complete"] = bool(progress.get("active_track"))
     languages = progress.setdefault("languages", {})
     for language in LEARN_LANGUAGES:
         languages.setdefault(language, {"completed_lessons": [], "completed_topics": [], "last_session": ""})
@@ -4208,7 +4332,7 @@ def load_learning_progress() -> dict:
 
 
 def save_learning_progress(progress: dict) -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
     LEARNING_PROGRESS_PATH.write_text(
         json.dumps(progress, indent=2) + "\n",
         encoding="utf-8",
@@ -4221,7 +4345,7 @@ def _prompt_choice(prompt: str, choices: dict[str, str], default: str | None = N
     for idx, (key, label) in enumerate(items, 1):
         suffix = "  default" if key == default else ""
         lines.append(f"[{idx}] {label}{suffix}")
-    ui_box(lines, title=prompt.strip(), color=ANSI.magenta)
+    ui_box(lines, title=prompt.strip(), color=ANSI.cyan)
     while True:
         raw = ui_prompt()
         if not raw and default:
@@ -4392,12 +4516,174 @@ def _provider_ready(provider: str, cfg: dict) -> bool:
     return False
 
 
+def _provider_model_key(provider: str) -> str:
+    return AI_PROVIDER_MODEL_KEYS.get(provider, "")
+
+
+def _raw_provider_model(provider: str, cfg: dict, progress: dict) -> str:
+    key = _provider_model_key(provider)
+    return "" if not key else str(progress.get(key) or cfg.get(key, "")).strip()
+
+
+def _provider_model(provider: str, cfg: dict, progress: dict) -> str:
+    model = _raw_provider_model(provider, cfg, progress)
+    if provider == "deepseek":
+        return _normalise_deepseek_model(model)
+    return model
+
+
+def _provider_model_display(provider: str, cfg: dict, progress: dict) -> str:
+    model = _provider_model(provider, cfg, progress)
+    if provider == "deepseek":
+        return DEEPSEEK_MODELS.get(model, model)
+    if provider in KNOWN_PROVIDER_MODELS:
+        return KNOWN_PROVIDER_MODELS[provider].get(model, model)
+    return model
+
+
+def _provider_model_choices(provider: str, cfg: dict, progress: dict) -> dict[str, str]:
+    if provider == "deepseek":
+        models = _list_deepseek_models(cfg)
+        return {
+            model: f"{DEEPSEEK_MODELS.get(model, model)} ({model})"
+            for model in models
+        }
+    if provider in KNOWN_PROVIDER_MODELS:
+        return {
+            model: f"{label} ({model})"
+            for model, label in KNOWN_PROVIDER_MODELS[provider].items()
+        }
+    return {}
+
+
+def _prompt_model_name(provider: str, cfg: dict, progress: dict) -> str:
+    key = _provider_model_key(provider)
+    if not key:
+        return ""
+    current = _provider_model(provider, cfg, progress)
+    choices = _provider_model_choices(provider, cfg, progress)
+    if not choices:
+        return current
+    default = current if current in choices else next(iter(choices))
+    if current and current not in choices:
+        ui_blank()
+        ui_box(
+            [f"Saved {LEARN_AI_PROVIDERS[provider]} model `{current}` is not in the available model list.",
+             "Choose one of the supported IDs below."],
+            title=f"{LEARN_AI_PROVIDERS[provider]} model",
+            color=ANSI.amber,
+        )
+    model = _prompt_choice(f"\n{LEARN_AI_PROVIDERS[provider]} model:", choices, default=default)
+    progress[key] = model
+    return model
+
+
+def _normalise_deepseek_model(model: str) -> str:
+    model = model.strip()
+    return DEEPSEEK_LEGACY_MODEL_ALIASES.get(model, model)
+
+
+def _provider_alias_note(provider: str, cfg: dict, progress: dict) -> str:
+    raw = _raw_provider_model(provider, cfg, progress)
+    model = _provider_model(provider, cfg, progress)
+    if provider == "deepseek" and raw and raw != model:
+        return f"{raw} -> {model}"
+    return "none" if model else ""
+
+
+def _provider_identity_lines(provider: str, cfg: dict, progress: dict) -> list[str]:
+    if provider == "offline":
+        return ["AI: Offline only"]
+    model_id = _provider_model(provider, cfg, progress)
+    display = _provider_model_display(provider, cfg, progress)
+    model_line = f"AI: {LEARN_AI_PROVIDERS[provider]} · Model ID: {model_id or '(none selected)'}"
+    if display and display != model_id:
+        model_line += f" · {display}"
+    alias = _provider_alias_note(provider, cfg, progress)
+    return [model_line, f"Alias: {alias or 'none'}"]
+
+
+def _list_deepseek_models(cfg: dict) -> list[str]:
+    key = cfg.get("deepseek_api_key") or os.environ.get("DEEPSEEK_API_KEY", "")
+    if not key:
+        return list(DEEPSEEK_MODELS)
+    endpoint = cfg.get("deepseek_endpoint", "https://api.deepseek.com/v1/chat/completions")
+    base_url = endpoint.split("/v1/")[0].rstrip("/")
+    try:
+        response = requests.get(
+            f"{base_url}/v1/models",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json().get("data", [])
+        models = [item.get("id", "") for item in data if item.get("id")]
+        return models or list(DEEPSEEK_MODELS)
+    except Exception:
+        return list(DEEPSEEK_MODELS)
+
+
+def _choose_deepseek_model(cfg: dict, progress: dict) -> str:
+    key = "deepseek_model"
+    current = _normalise_deepseek_model(_provider_model("deepseek", cfg, progress))
+    choices = _provider_model_choices("deepseek", cfg, progress)
+    default = current if current in choices else "deepseek-v4-flash"
+    if current and current not in choices:
+        ui_blank()
+        ui_box(
+            [f"Saved DeepSeek model `{current}` is not in the available model list.",
+             "Choose one of the supported IDs below."],
+            title="DeepSeek model",
+            color=ANSI.amber,
+        )
+    model = _prompt_choice("\nDeepSeek model:", choices, default=default)
+    progress[key] = model
+    return model
+
+
+def _configure_provider_model(provider: str, cfg: dict, progress: dict) -> None:
+    if provider == "local":
+        model = _choose_local_model(cfg, progress.get("local_model", ""))
+        if model:
+            progress["local_model"] = model
+        return
+    if provider == "deepseek":
+        _choose_deepseek_model(cfg, progress)
+        return
+    if provider in ("claude", "openai"):
+        _prompt_model_name(provider, cfg, progress)
+
+
+def _ensure_provider_model_choice(provider: str, cfg: dict, progress: dict) -> None:
+    if provider == "deepseek":
+        current = _provider_model("deepseek", cfg, progress)
+        if current not in _list_deepseek_models(cfg):
+            _choose_deepseek_model(cfg, progress)
+        elif _raw_provider_model("deepseek", cfg, progress) != current:
+            progress["deepseek_model"] = current
+    elif provider in ("claude", "openai"):
+        current = _provider_model(provider, cfg, progress)
+        allowed = KNOWN_PROVIDER_MODELS.get(provider, {})
+        if not current or current not in allowed:
+            _prompt_model_name(provider, cfg, progress)
+    elif provider == "local" and not progress.get("local_model"):
+        _learning_local_model(progress, cfg, prompt_if_missing=True)
+
+
+def _apply_progress_models(cfg: dict, progress: dict) -> dict:
+    merged = dict(cfg)
+    for key in AI_PROVIDER_MODEL_KEYS.values():
+        if progress.get(key):
+            merged[key] = _normalise_deepseek_model(progress[key]) if key == "deepseek_model" else progress[key]
+    return merged
+
+
 def _choose_local_model(cfg: dict, current: str = "") -> str:
     """Let the learner pick (or change) the local model.
 
     Lists models from LM Studio's server when reachable, marks the current one,
-    and always lets the user pick a number, type a model name, or press Enter to
-    keep the current choice. Returns the chosen model name (or current/"").
+    and only accepts numbered choices or Enter to keep the current choice.
+    Returns the chosen model name (or current/"").
     """
     models = _list_lm_studio(cfg)
     ui_blank()
@@ -4405,12 +4691,12 @@ def _choose_local_model(cfg: dict, current: str = "") -> str:
         lines = [f"[{idx}] {model}{'  (current)' if model == current else ''}" for idx, model in enumerate(models, 1)]
         if current and current not in models:
             lines.append(f"Current: {current}  (not in the server's list)")
-        lines.append("Pick a number, type a model name, or press Enter to keep the current model.")
+        lines.append("Pick a number, or press Enter to keep the current model.")
         ui_box(lines, title="Choose a local model", color=ANSI.cyan)
     else:
         ui_box(
             ["No models found from LM Studio's local server.",
-             "Start LM Studio and load a model, or type a model name to use.",
+             "Start LM Studio and load a model before selecting local AI.",
              f"Current model: {current or '(none)'}"],
             title="Choose a local model", color=ANSI.amber,
         )
@@ -4421,9 +4707,9 @@ def _choose_local_model(cfg: dict, current: str = "") -> str:
         if raw.isdigit():
             if models and 1 <= int(raw) <= len(models):
                 return models[int(raw) - 1]
-            ui_line(f"Pick a number 1-{len(models)} or type a model name.", color=ANSI.amber)
+            ui_line(f"Pick a number 1-{len(models)}.", color=ANSI.amber)
             continue
-        return raw  # treat anything else as a typed model name
+        ui_line("Model names must come from LM Studio's loaded model list.", color=ANSI.amber)
 
 
 def _learning_local_model(progress: dict, cfg: dict, prompt_if_missing: bool = True) -> str:
@@ -4445,7 +4731,7 @@ def _prepare_ai_cfg(provider: str, cfg: dict, progress: dict) -> tuple[dict, str
     """Resolve config for a learning AI call. Returns (cfg, error_message_or_None)."""
     if provider == "offline":
         return cfg, "AI assistance is set to offline. Change AI settings from the Learn menu to use local or cloud help."
-    local_cfg = dict(cfg)
+    local_cfg = _apply_progress_models(cfg, progress)
     if provider == "local":
         local_model = _learning_local_model(progress, cfg, prompt_if_missing=True)
         if not local_model:
@@ -4476,14 +4762,17 @@ def _grade_answer(provider: str, question: str, answer: str, accepted: list[str]
                   subject: str, cfg: dict, progress: dict, context: str = "") -> tuple[bool, str]:
     """Judge a learner's short answer.
 
-    When a live AI provider is configured, the model decides correctness so the
-    learner is judged on meaning, not exact wording. Falls back to local keyword
-    matching offline or whenever the AI call/parse fails. Returns (is_correct, feedback).
+    Hard accepted-answer matching runs first for trust and speed. A live AI
+    provider is only used for ambiguous wording that the deterministic check
+    could not accept.
     """
+    if _answer_matches(answer, accepted):
+        return True, "Hard check passed: matched the expected concept."
+
     local_cfg, error = _prepare_ai_cfg(provider, cfg, progress)
     if error:
         # Offline or provider not ready: fall back to keyword matching, no prose.
-        return _answer_matches(answer, accepted), ""
+        return False, ""
     system = (
         "You are grading a beginner's short answer to a concept question. "
         "Decide whether the learner's answer is essentially correct, even if it is "
@@ -4657,6 +4946,7 @@ def _programming_lesson_view(language: str, lesson: dict) -> dict:
         "title": f"Day {lesson['day']}: {lesson['title']} ({LEARN_LANGUAGES[language]})",
         "subject": LEARN_LANGUAGES[language],
         "context": lesson["title"],
+        "topic": lesson["topic"],
         "teach": teach,
         "example": lesson.get("example", ""),
         "example_title": note["example_prefix"],
@@ -4671,15 +4961,24 @@ def _programming_lesson_view(language: str, lesson: dict) -> dict:
 
 
 def _ai_lesson_view(module: str, lesson: dict) -> dict:
-    teach = [lesson["objective"], ""] + [f"- {item}" for item in lesson.get("fundamentals", [])]
+    context_paragraphs = _ai_context_paragraphs(module, lesson)
+    teach = [
+        lesson["objective"],
+        "",
+        *context_paragraphs,
+        "",
+        "Key ideas:",
+        *[f"- {item}" for item in lesson.get("fundamentals", [])],
+    ]
     quiz, answers = lesson["quiz"]
     return {
         "title": f"{AI_MODULES[module]} - Lesson {lesson['day']}: {lesson['title']}",
         "subject": AI_MODULES[module],
         "context": lesson["title"],
         "teach": teach,
-        "example": lesson.get("example", ""),
-        "example_title": lesson.get("example_title", "Example"),
+        "context_paragraphs": context_paragraphs,
+        "example": "",
+        "example_title": "Example",
         "language": None,
         "quiz": quiz,
         "answers": answers,
@@ -4687,40 +4986,80 @@ def _ai_lesson_view(module: str, lesson: dict) -> dict:
     }
 
 
+def _ai_sentence(text: str) -> str:
+    text = text.strip()
+    if not text:
+        return ""
+    return text if text.endswith((".", "!", "?", ":")) else f"{text}."
+
+
+def _ai_context_paragraphs(module: str, lesson: dict) -> list[str]:
+    module_label = AI_MODULES[module]
+    fundamentals = [_ai_sentence(item) for item in lesson.get("fundamentals", []) if item.strip()]
+    paragraphs = [
+        (
+            f"{lesson['title']} sits inside {module_label}. In practice, this topic is about learning how to explain "
+            "the idea clearly, choose the right design choice, and spot where the concept stops being reliable."
+        )
+    ]
+    if fundamentals:
+        first = " ".join(fundamentals[:2])
+        if first:
+            paragraphs.append(first)
+        rest = " ".join(fundamentals[2:])
+        if rest:
+            paragraphs.append(
+                f"{rest} Put another way, the important part is not memorizing the term. "
+                "It is knowing what changes in a real product, what tradeoff you are accepting, "
+                "and what can go wrong if you ignore it."
+            )
+    else:
+        paragraphs.append(
+            "The central idea is easier to remember when you connect it to a real AI workflow, such as choosing a model, "
+            "writing a prompt, retrieving supporting facts, or checking whether the output is trustworthy."
+        )
+    return paragraphs
+
+
 def _teach_lesson(view: dict) -> None:
     ui_blank()
-    ui_box(view["teach"], title=view["title"], color=ANSI.cyan)
+    ui_box(view["teach"], title=f"Stage 1 · Lecture · {view['title']}", color=ANSI.cyan)
     if view.get("example"):
         ui_blank()
         ui_box(view["example"].splitlines(), title=view["example_title"], color=ANSI.green)
 
 
-def _quick_check(view: dict, progress: dict, cfg: dict) -> str:
+def _quick_check(view: dict, progress: dict, cfg: dict, has_prev: bool = False) -> str:
     """Run the conceptual quick check.
 
-    Answering (right or wrong) returns you to the practice menu so you can also
-    try the code, ask the tutor, or mark the lesson complete when ready. Returns
-    'back' (to the practice menu) or 'skip' (mark complete and move on).
+    Returns 'correct', 'prev', or 'back'. Wrong answers stay in the question
+    loop so the learner can reattempt before moving to the coding problem.
     """
     provider = progress.get("ai_provider", "offline")
     ui_blank()
-    ui_box([view["quiz"]], title="Quick check", color=ANSI.amber)
-    ui_line("Type your answer  ·  [a] ask the tutor  ·  [s] mark complete & move on  ·  [b] back", color=ANSI.dim)
+    ui_box([view["quiz"]], title="Stage 2 · Question / answer", color=ANSI.amber)
+    help_text = "Type your answer  ·  [a] ask the tutor  ·  [b] back"
+    if has_prev:
+        help_text += "  ·  [p] previous"
+    ui_line(help_text, color=ANSI.dim)
     attempts = 0
     while True:
         answer = _read_line("> ").strip()
         cmd = answer.lower()
         if cmd in ("b", "back"):
             return "back"
-        if cmd in ("s", "skip"):
-            return "skip"
+        if cmd in ("p", "prev", "previous"):
+            if has_prev:
+                return "prev"
+            ui_line("This is the first lesson.", color=ANSI.amber)
+            continue
         if cmd in ("a", "ask"):
             ui_line("Ask your tutor:", color=ANSI.cyan)
             question = _read_line("> ").strip()
             if question:
                 _show_ai_feedback(_learning_ai_response(provider, question, view["subject"], cfg, progress, context=view["context"]))
-            ui_box([view["quiz"]], title="Quick check", color=ANSI.amber)
-            ui_line("Type your answer, or [s] to mark complete, [b] to go back.", color=ANSI.dim)
+            ui_box([view["quiz"]], title="Stage 2 · Question / answer", color=ANSI.amber)
+            ui_line(help_text, color=ANSI.dim)
             continue
         if not answer:
             continue
@@ -4730,12 +5069,12 @@ def _quick_check(view: dict, progress: dict, cfg: dict) -> str:
             ui_line("Correct!", color=ANSI.green, bold=True)
             if feedback:
                 ui_box(feedback.splitlines(), title="Tutor", color=ANSI.cyan)
-            ui_line("Back to practice — try the code, ask the tutor, or mark complete when you're ready.", color=ANSI.dim)
-            return "back"
+            ui_line("Next: coding problem.", color=ANSI.dim)
+            return "correct"
         if attempts == 1:
             # Let the learner try again before the tutor corrects them.
             ui_line("Not quite — give it another try.", color=ANSI.amber, bold=True)
-            ui_line("Type [a] for a hint, or [s] to reveal and move on.", color=ANSI.dim)
+            ui_line("Type [a] for a hint, or answer again.", color=ANSI.dim)
         else:
             ui_line("Not quite.", color=ANSI.amber, bold=True)
             if feedback:
@@ -4743,74 +5082,197 @@ def _quick_check(view: dict, progress: dict, cfg: dict) -> str:
             else:
                 # No tutor prose (offline, or AI grading fell back to matching):
                 # reveal a correct answer so the learner is never stuck.
-                ui_box([f"A correct answer is: {view['answers'][0]}.", "Review the lesson above, then try again or [s] to move on."],
+                ui_box([f"A correct answer is: {view['answers'][0]}.", "Review the lesson above, then try again."],
                        title="Answer", color=ANSI.amber)
 
 
-def _coding_practice(view: dict, progress: dict, cfg: dict) -> None:
+def _has_any(text: str, patterns: list[str]) -> bool:
+    return any(re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE | re.DOTALL) for pattern in patterns)
+
+
+def _output_patterns(language: str | None) -> list[str]:
+    return {
+        "python": [r"\bprint\s*\("],
+        "c": [r"\bprintf\s*\("],
+        "java": [r"System\.out\.print(?:ln)?\s*\("],
+    }.get(language or "", [r"\bprint\s*\(", r"\bprintf\s*\(", r"System\.out\.print"])
+
+
+def _programming_hard_review(view: dict, code: str) -> tuple[bool | None, str]:
+    topic = view.get("topic", "")
+    language = view.get("language")
+    if not _has_any(code, _output_patterns(language)) and topic not in {"classes"}:
+        return False, "Hard checks failed: include visible output so the result can be verified."
+    if topic == "variables":
+        assignments = re.findall(r"(?m)^\s*(?:[A-Za-z_]\w*\s+)?[A-Za-z_]\w*\s*=", code)
+        if len(assignments) < 2:
+            return False, "Hard checks failed: create at least two variables before printing."
+
+    checks: dict[str, tuple[list[str], str]] = {
+        "variables": (
+            [r"(?m)^\s*(?:[A-Za-z_]\w*\s+)?[A-Za-z_]\w*\s*=", *_output_patterns(language)],
+            "Hard checks passed: found variable assignment and output.",
+        ),
+        "types": (
+            [r"[\"']10[\"']", r"\b(?:int|float|double|Integer\.parseInt|Double\.parseDouble|atoi|strtol)\b", r"\b5\b", *_output_patterns(language)],
+            "Hard checks passed: found string-to-number conversion, addition, and output.",
+        ),
+        "input": (
+            [r"\b(?:input|Scanner|scanf|fgets|BufferedReader)\b", r"\b(?:int|float|double|Integer\.parseInt|Double\.parseDouble|atoi|strtol)\b", *_output_patterns(language)],
+            "Hard checks passed: found input, numeric conversion, and output.",
+        ),
+        "conditionals": (
+            [r"\bif\b", r"\belse\b", r"(?:positive|negative|zero|>\s*0|<\s*0)", *_output_patterns(language)],
+            "Hard checks passed: found branching logic for positive/negative/zero.",
+        ),
+        "loops": (
+            [r"\b(?:for|while)\b", r"(?:1\s*(?:,|\.\.|;|<=)|range\s*\(\s*1\s*,\s*11\s*\))", *_output_patterns(language)],
+            "Hard checks passed: found a loop over the required range and output.",
+        ),
+        "functions": (
+            [r"\bsquare\b", r"\breturn\b", r"\b4\b", *_output_patterns(language)],
+            "Hard checks passed: found square function, return value, call, and output.",
+        ),
+        "arrays": (
+            [r"(?:\[|\{)\s*3\s*,\s*1\s*,\s*4\s*(?:\]|\})", r"\b(?:for|while|sum)\b", *_output_patterns(language)],
+            "Hard checks passed: found the required collection, traversal or sum, and output.",
+        ),
+        "strings": (
+            [r"[\"']hello[\"']", r"\b(?:len|length|strlen)\b", r"(?:\[0\]|charAt\s*\(\s*0\s*\))", *_output_patterns(language)],
+            "Hard checks passed: found length and first-character handling.",
+        ),
+    }
+    required = checks.get(topic)
+    if not required:
+        return None, "Hard checks could not fully verify this exercise; AI review is needed."
+    patterns, success = required
+    missing = [pattern for pattern in patterns if not _has_any(code, [pattern])]
+    if missing:
+        return False, "Hard checks failed: the submission is missing one or more required pieces for this exercise."
+    return True, success
+
+
+def _submission_hard_review(view: dict, code: str) -> tuple[bool | None, str]:
+    cleaned = code.strip()
+    if len(cleaned) < 12:
+        return False, "Hard checks failed: the submission is too short to review."
+    if re.search(r"\b(todo|placeholder|fix me|not sure)\b", cleaned, flags=re.IGNORECASE):
+        return False, "Hard checks failed: remove placeholders before submitting."
+    if view.get("language"):
+        return _programming_hard_review(view, cleaned)
+    if len(re.findall(r"\w+", cleaned)) < 8:
+        return False, "Hard checks failed: include enough detail to evaluate the implementation."
+    return None, "Hard checks passed basic completeness; AI review is needed for correctness."
+
+
+def _ai_review_submission(view: dict, code: str, provider: str, cfg: dict, progress: dict) -> tuple[bool, str]:
+    local_cfg, error = _prepare_ai_cfg(provider, cfg, progress)
+    if error:
+        return False, error
+
+    lang_label = LEARN_LANGUAGES.get(view.get("language") or "", view["subject"])
+    system = (
+        "You are reviewing a beginner's coding or implementation exercise. "
+        "Decide whether the submission satisfies the exercise goal. Be practical: "
+        "minor style issues are okay, but missing core behavior, syntax that cannot plausibly run, "
+        "or an answer that is only prose when code/design artifacts are required is not correct. "
+        "Return ONLY valid JSON, no markdown fences: "
+        '{"correct": true or false, "feedback": "two to four concise sentences with the next fix if incorrect"}'
+    )
+    user_msg = (
+        f"Subject: {view['subject']}\n"
+        f"Lesson context: {view['context']}\n"
+        f"Exercise: {view['build']}\n"
+        f"Submission type/language: {lang_label}\n\n"
+        f"Submission:\n{code}"
+    )
+    try:
+        raw = _call_ai(system, user_msg, provider, local_cfg, timeout=120)
+        data = _parse_json_response(raw or "")
+        if isinstance(data, dict) and "correct" in data:
+            return bool(data["correct"]), str(data.get("feedback", "")).strip()
+        return False, raw or "AI review did not return a usable result. Try again or change AI settings."
+    except Exception as exc:
+        return False, f"AI review failed: {exc}"
+
+
+def _ai_feedback_after_hard_pass(view: dict, code: str, provider: str, cfg: dict, progress: dict) -> str:
+    local_cfg, error = _prepare_ai_cfg(provider, cfg, progress)
+    if error:
+        return ""
+    lang_label = LEARN_LANGUAGES.get(view.get("language") or "", view["subject"])
+    system = (
+        "You are a concise coding coach. The deterministic checks already passed, "
+        "so do not change the correctness decision. Give one short improvement note, "
+        "or say the solution is ready if there is nothing important to improve."
+    )
+    user_msg = f"Exercise: {view['build']}\nLanguage/type: {lang_label}\nSubmission:\n{code}"
+    try:
+        return _call_ai(system, user_msg, provider, local_cfg, timeout=60) or ""
+    except Exception:
+        return ""
+
+
+def _review_code_submission(view: dict, code: str, progress: dict, cfg: dict) -> tuple[bool, str]:
+    provider = progress.get("ai_provider", "offline")
+    hard_result, hard_feedback = _submission_hard_review(view, code)
+    if hard_result is False:
+        return False, hard_feedback
+    if hard_result is True:
+        ai_note = _ai_feedback_after_hard_pass(view, code, provider, cfg, progress)
+        feedback = hard_feedback + "\nNext: this lesson can advance."
+        return True, feedback + (f"\nAI note: {ai_note}" if ai_note else "")
+    return _ai_review_submission(view, code, provider, cfg, progress)
+
+
+def _coding_practice(view: dict, progress: dict, cfg: dict, has_prev: bool = False) -> str:
     ui_blank()
-    ui_box([view["build"]], title="Coding exercise", color=ANSI.magenta)
+    ui_box([view["build"]], title="Stage 3 · Coding problem", color=ANSI.cyan)
+    prompt = "Press Enter to open the editor  ·  [b] back"
+    if has_prev:
+        prompt += "  ·  [p] previous"
+    ui_line(prompt, color=ANSI.dim)
+    cmd = _read_line("> ").strip().lower()
+    if cmd in ("b", "back"):
+        return "back"
+    if cmd in ("p", "prev", "previous"):
+        if has_prev:
+            return "prev"
+        ui_line("This is the first lesson.", color=ANSI.amber)
+        return "retry"
     code = _read_code_block(view.get("language"))
     if not code.strip():
         ui_line("No code submitted.", color=ANSI.dim)
-        return
-    provider = progress.get("ai_provider", "offline")
-    if provider == "offline":
-        ui_blank()
-        ui_box(
-            ["Saved. AI review is offline — compare your code against the example above.",
-             "Switch AI settings (Settings menu) to get feedback on your code."],
-            title="Review", color=ANSI.amber,
-        )
-        return
-    lang_label = LEARN_LANGUAGES.get(view.get("language") or "", view["subject"])
-    feedback = _learning_ai_response(
-        provider,
-        f"Exercise: {view['build']}\n\nThe learner wrote this {lang_label} code:\n{code}\n\n"
-        "Give brief, encouraging feedback: what works, what to fix, and whether it meets the goal. "
-        "Do not rewrite the whole solution for them.",
-        view["subject"], cfg, progress, context=view["context"],
-    )
-    _show_ai_feedback(feedback, title="Code review")
+        return "retry"
+    correct, feedback = _review_code_submission(view, code, progress, cfg)
+    title = "Stage 4 · Review"
+    color = ANSI.green if correct else ANSI.amber
+    ui_blank()
+    ui_box((feedback or ("Correct." if correct else "Not correct yet.")).splitlines(), title=title, color=color)
+    if correct:
+        ui_line("Next: lesson completion.", color=ANSI.dim)
+        return "correct"
+    ui_line("Press Enter to reattempt the coding problem.", color=ANSI.dim)
+    _read_line()
+    return "retry"
 
 
 def _practice_lesson(view: dict, progress: dict, cfg: dict, has_prev: bool = False) -> str:
-    """Practice phase after teaching. Returns 'complete', 'prev', or 'back'."""
+    """Sequential practice: question/answer, then coding problem with AI review."""
     while True:
-        ui_blank()
-        ui_menu("Practice", ["Quick check (answer a question)", "Try the code (write code, get feedback)",
-                             "Ask the tutor a question", "Mark complete & go to next lesson",
-                             "Previous lesson", "Back to menu"])
-        choice = ui_prompt()
-        if choice in ("6", "b", "back"):
-            return "back"
-        if choice in ("5", "p", "prev", "previous"):
-            if has_prev:
-                return "prev"
-            ui_line("This is the first lesson.", color=ANSI.amber)
-            continue
-        if choice in ("4", "s", "skip", "done", "next"):
-            return "complete"
-        if choice in ("3", "a", "ask"):
-            ui_line("Ask your tutor:", color=ANSI.cyan)
-            question = _read_line("> ").strip()
-            if question:
-                _show_ai_feedback(_learning_ai_response(progress.get("ai_provider", "offline"), question, view["subject"], cfg, progress, context=view["context"]))
-            continue
-        if choice in ("2", "code", "try"):
-            _coding_practice(view, progress, cfg)
-            continue
-        if choice in ("1", "q", "quiz", "check", ""):
-            # Answering returns here regardless of correctness; only the explicit
-            # 'mark complete' option (or [s] inside the check) advances the lesson.
-            if _quick_check(view, progress, cfg) == "skip":
+        check_result = _quick_check(view, progress, cfg, has_prev=has_prev)
+        if check_result in ("back", "prev"):
+            return check_result
+        while True:
+            code_result = _coding_practice(view, progress, cfg, has_prev=has_prev)
+            if code_result == "correct":
                 return "complete"
-            continue
-        ui_line("Pick 1-6.", color=ANSI.amber)
+            if code_result in ("back", "prev"):
+                return code_result
 
 
 def _lesson_session(progress, cfg, *, curriculum, completed_days, make_view,
-                    mark_complete, after_complete, show_all_done) -> None:
+                    practice_lesson, mark_complete, after_complete, show_all_done) -> None:
     """Shared teach -> practice loop with forward/backward lesson navigation.
 
     Tracks position by index so the learner can revisit earlier lessons, not
@@ -4831,9 +5293,9 @@ def _lesson_session(progress, cfg, *, curriculum, completed_days, make_view,
         ui_blank()
         done = "  (completed)" if lesson["day"] in completed_days else ""
         ui_line(f"Lesson {idx + 1} of {len(curriculum)}{done}", color=ANSI.dim)
-        nav = "Press Enter to practice  ·  [b] back to menu"
+        nav = "Press Enter for Q&A  ·  [b] back to menu"
         if idx > 0:
-            nav = "Press Enter to practice  ·  [p] previous lesson  ·  [b] back to menu"
+            nav = "Press Enter for Q&A  ·  [p] previous lesson  ·  [b] back to menu"
         ui_line(nav, color=ANSI.dim)
         cmd = _read_line().strip().lower()
         if cmd in ("b", "back"):
@@ -4842,7 +5304,7 @@ def _lesson_session(progress, cfg, *, curriculum, completed_days, make_view,
             if idx > 0:
                 idx -= 1
             continue
-        result = _practice_lesson(view, progress, cfg, has_prev=idx > 0)
+        result = practice_lesson(view, progress, cfg, has_prev=idx > 0)
         if result == "back":
             return
         if result == "prev":
@@ -4879,6 +5341,7 @@ def _run_lesson(language: str, progress: dict, cfg: dict) -> None:
         curriculum=build_learning_curriculum(language),
         completed_days=set(lang_progress.get("completed_lessons", [])),
         make_view=lambda lesson: _programming_lesson_view(language, lesson),
+        practice_lesson=_practice_lesson,
         mark_complete=lambda lesson: _mark_lesson_complete(language, lesson, progress),
         after_complete=lambda: _print_unlocked_after_lesson(language),
         show_all_done=show_all_done,
@@ -4911,20 +5374,22 @@ def _run_ai_lesson(module: str, progress: dict, cfg: dict) -> None:
         curriculum=_ai_curriculum(module),
         completed_days=set(module_progress.get("completed_lessons", [])),
         make_view=lambda lesson: _ai_lesson_view(module, lesson),
+        practice_lesson=_practice_lesson,
         mark_complete=lambda lesson: _mark_ai_lesson_complete(module, lesson, progress),
         after_complete=lambda: None,
         show_all_done=show_all_done,
     )
 
 
-def _show_learning_progress(language: str, progress: dict) -> None:
+def _show_learning_progress(language: str, progress: dict, cfg: dict) -> None:
     lang_progress = progress.get("languages", {}).get(language, {})
     completed = set(lang_progress.get("completed_lessons", []))
     curriculum = build_learning_curriculum(language)
+    provider = progress.get("ai_provider", "offline")
     lines = [
         f"Lessons: {len(completed)}/{len(curriculum)}",
-        f"AI: {LEARN_AI_PROVIDERS.get(progress.get('ai_provider', 'offline'), 'Offline only')}",
         "Completed topics: " + (", ".join(lang_progress.get("completed_topics", [])) or "-"),
+        *_provider_identity_lines(provider, cfg, progress),
     ]
     next_lesson = _next_lesson(language, lang_progress)
     if next_lesson:
@@ -4939,13 +5404,14 @@ def _show_learning_progress(language: str, progress: dict) -> None:
         ui_box([_format_problem_line(p, language, load_leetcode_progress()) for p in unlocked], title="Unlocked LeetCode", color=ANSI.green)
 
 
-def _show_ai_progress(module: str, progress: dict) -> None:
+def _show_ai_progress(module: str, progress: dict, cfg: dict) -> None:
     module_progress = progress.get("ai_principles", {}).get(module, {})
     completed = set(module_progress.get("completed_lessons", []))
     curriculum = _ai_curriculum(module)
+    provider = progress.get("ai_provider", "offline")
     lines = [
         f"Lessons: {len(completed)}/{len(curriculum)}",
-        f"AI: {LEARN_AI_PROVIDERS.get(progress.get('ai_provider', 'offline'), 'Offline only')}",
+        *_provider_identity_lines(provider, cfg, progress),
     ]
     next_lesson = _next_ai_lesson(module, module_progress)
     if next_lesson:
@@ -4962,7 +5428,7 @@ def _show_ai_progress(module: str, progress: dict) -> None:
         mark = "*" if key == module else " "
         module_lines.append(f"{mark} {label}: {count}/{total}")
     ui_blank()
-    ui_box(module_lines, title="All Principles of AI modules", color=ANSI.magenta)
+    ui_box(module_lines, title="All Principles of AI modules", color=ANSI.cyan)
 
 
 def _practice_leetcode_interactive(language: str) -> None:
@@ -5026,10 +5492,7 @@ def _change_learning_settings(progress: dict, cfg: dict) -> tuple[str, str, str,
         {"offline": "Offline only", "local": "Local AI (LM Studio)", "claude": "Claude", "openai": "OpenAI", "deepseek": "DeepSeek"},
         default=progress.get("ai_provider", "offline"),
     )
-    if provider == "local":
-        model = _choose_local_model(cfg, progress.get("local_model", ""))
-        if model:
-            progress["local_model"] = model
+    _configure_provider_model(provider, cfg, progress)
     theme = _prompt_choice(
         "\nColor theme (for terminal legibility):",
         {"dark": "Dark background", "light": "Light background"},
@@ -5045,19 +5508,96 @@ def _change_learning_settings(progress: dict, cfg: dict) -> tuple[str, str, str,
     return track, language, module, provider
 
 
-def _print_session_status(track: str, language: str, module: str, provider: str, progress: dict, cfg: dict) -> None:
-    status_lines = [f"Track: {LEARN_TRACKS[track]}"]
+def _active_progress_summary(track: str, language: str, module: str, progress: dict) -> str:
     if track == "programming":
-        status_lines.append(f"Language: {LEARN_LANGUAGES[language]}")
-    else:
-        status_lines.append(f"Module: {AI_MODULES[module]}")
-    status_lines.append(f"AI help: {LEARN_AI_PROVIDERS[provider]}")
-    if provider == "local":
-        status_lines.append(f"Local model: {progress.get('local_model') or '(none selected)'}")
+        lang_progress = progress.get("languages", {}).get(language, {})
+        completed = len(lang_progress.get("completed_lessons", []))
+        total = len(build_learning_curriculum(language))
+        return f"Track: Programming · {LEARN_LANGUAGES[language]} · {completed}/{total} lessons"
+    module_progress = progress.get("ai_principles", {}).get(module, {})
+    completed = len(module_progress.get("completed_lessons", []))
+    total = len(_ai_curriculum(module))
+    return f"Track: Principles of AI · {AI_MODULES[module]} · {completed}/{total} lessons"
+
+
+def _active_next_label(track: str, language: str, module: str, progress: dict) -> str:
+    if track == "programming":
+        lang_progress = progress.get("languages", {}).get(language, {})
+        lesson = _next_lesson(language, lang_progress)
+        return f"Day {lesson['day']}: {lesson['title']}" if lesson else "curriculum complete"
+    module_progress = progress.get("ai_principles", {}).get(module, {})
+    lesson = _next_ai_lesson(module, module_progress)
+    return f"Lesson {lesson['day']}: {lesson['title']}" if lesson else "module complete"
+
+
+def _session_status_lines(
+    track: str,
+    language: str,
+    module: str,
+    provider: str,
+    progress: dict,
+    cfg: dict,
+    *,
+    stage: str,
+    next_action: str,
+) -> list[str]:
+    return [
+        f"Stage: {stage}",
+        _active_progress_summary(track, language, module, progress),
+        f"Current lesson: {_active_next_label(track, language, module, progress)}",
+        *_provider_identity_lines(provider, cfg, progress),
+        f"Next: {next_action}",
+    ]
+
+
+def _print_session_status(
+    track: str,
+    language: str,
+    module: str,
+    provider: str,
+    progress: dict,
+    cfg: dict,
+    *,
+    stage: str = "Home",
+    next_action: str = "Enter to resume today's lesson",
+) -> None:
+    status_lines = _session_status_lines(
+        track, language, module, provider, progress, cfg,
+        stage=stage,
+        next_action=next_action,
+    )
     ui_blank()
     ui_box(status_lines, title="Session", color=ANSI.cyan)
     if provider != "offline" and not _provider_ready(provider, cfg):
         ui_box(["AI provider is selected but not ready.", "You can still learn offline or change settings."], title="Provider warning", color=ANSI.amber)
+
+
+def _explicit_learning_args(args) -> bool:
+    return bool(args and any(getattr(args, name, None) for name in ("track", "language", "module", "ai")))
+
+
+def _learn_command_options(track: str) -> list[tuple[str, str, tuple[str, ...]]]:
+    second = "LeetCode practice" if track == "programming" else "Module progress"
+    return [
+        ("lesson", "Resume today's lesson", ("1", "today", "start", "learn", "resume")),
+        ("secondary", second, ("2", "leetcode", "practice", "module")),
+        ("ask", "Ask AI tutor", ("3", "ai", "tutor", "question")),
+        ("progress", "Progress", ("4", "stats", "status")),
+        ("settings", "Settings", ("5", "config", "setup")),
+        ("quit", "Quit", ("6", "q", "exit")),
+    ]
+
+
+def _resolve_home_command(raw: str, track: str) -> str:
+    command = raw.strip().lower()
+    if not command:
+        return "lesson"
+    if command in (":commands", "commands", "cmd", "menu", "?", "/"):
+        return _command_palette("Commands", _learn_command_options(track))
+    for key, _label, aliases in _learn_command_options(track):
+        if command == key or command in aliases:
+            return key
+    return "ask"
 
 
 def handle_learn(args=None) -> None:
@@ -5072,70 +5612,80 @@ def handle_learn(args=None) -> None:
         progress["active_track"] = args.track
     if args and getattr(args, "language", None):
         progress["active_language"] = args.language
-        progress["active_track"] = progress.get("active_track") or "programming"
+        progress["active_track"] = "programming"
     if args and getattr(args, "module", None):
         progress["active_ai_module"] = args.module
-        progress["active_track"] = progress.get("active_track") or "ai_principles"
+        progress["active_track"] = "ai_principles"
     if args and getattr(args, "ai", None):
         progress["ai_provider"] = args.ai
+
+    if _explicit_learning_args(args):
+        track = _ensure_learning_track(progress)
+        language = _ensure_learning_language(progress) if track == "programming" else progress.get("active_language", "python")
+        module = _ensure_ai_module(progress) if track == "ai_principles" else progress.get("active_ai_module", "rag")
+        provider = _ensure_learning_ai(progress)
+        _ensure_provider_model_choice(provider, cfg, progress)
+        progress["onboarding_complete"] = True
+    else:
+        needs_onboarding = (
+            not progress.get("onboarding_complete")
+            or progress.get("active_track") not in LEARN_TRACKS
+            or progress.get("ai_provider") not in LEARN_AI_PROVIDERS
+        )
+        if needs_onboarding:
+            ui_blank()
+            ui_line("Set up your first session", color=ANSI.green, bold=True)
+            track, language, module, provider = _change_learning_settings(progress, cfg)
+            progress["onboarding_complete"] = True
+        else:
+            track = _ensure_learning_track(progress)
+            language = _ensure_learning_language(progress) if track == "programming" else progress.get("active_language", "python")
+            module = _ensure_ai_module(progress) if track == "ai_principles" else progress.get("active_ai_module", "rag")
+            provider = _ensure_learning_ai(progress)
+            _ensure_provider_model_choice(provider, cfg, progress)
     save_learning_progress(progress)
-
-    track = _ensure_learning_track(progress)
-    language = _ensure_learning_language(progress) if track == "programming" else progress.get("active_language", "python")
-    module = _ensure_ai_module(progress) if track == "ai_principles" else progress.get("active_ai_module", "rag")
-    provider = _ensure_learning_ai(progress)
-    if provider == "local" and not progress.get("local_model"):
-        _learning_local_model(progress, cfg, prompt_if_missing=True)
-    if provider == "local":
-        cfg["local_model"] = progress.get("local_model", "")
-
-    _print_session_status(track, language, module, provider, progress, cfg)
+    cfg = _apply_progress_models(cfg, progress)
 
     while True:
-        options = ["Today's lesson"]
-        if track == "programming":
-            options.append("LeetCode practice")
-        else:
-            options.append("Module progress")
-        options += ["Ask AI tutor", "Progress", "Settings", "Quit"]
-        ui_blank()
-        ui_menu("Command palette", options)
-        choice = ui_prompt()
-        if choice in ("6", "q", "quit", "exit"):
+        _print_session_status(
+            track, language, module, provider, progress, cfg,
+            stage="Resume",
+            next_action="Enter: resume lesson · Ctrl+P: commands · type: tutor question",
+        )
+        raw = _read_command_line()
+        choice = _resolve_home_command(raw, track)
+        if choice == "quit":
             ui_line("Saved. See you next session.", color=ANSI.green, bold=True)
             return
-        if choice in ("1", "lesson", ""):
+        if choice == "lesson":
             if track == "programming":
                 _run_lesson(language, progress, cfg)
             else:
                 _run_ai_lesson(module, progress, cfg)
-        elif choice in ("2", "leetcode", "practice"):
+        elif choice == "secondary":
             if track == "programming":
                 _practice_leetcode_interactive(language)
             else:
-                _show_ai_progress(module, progress)
-        elif choice in ("3", "ask"):
+                _show_ai_progress(module, progress, cfg)
+        elif choice == "ask":
             ui_line("Ask your tutor:", color=ANSI.cyan)
-            question = _read_line("> ").strip()
+            command_words = {":commands", "commands", "cmd", "menu", "?", "/", "ask", "ai", "tutor", "question", "3"}
+            question = raw.strip() if raw.strip().lower() not in command_words else _read_line("> ").strip()
             if question:
                 subject = LEARN_LANGUAGES[language] if track == "programming" else AI_MODULES[module]
                 _show_ai_feedback(
                     _learning_ai_response(progress.get("ai_provider", "offline"), question, subject, cfg, progress),
                 )
-        elif choice in ("4", "progress"):
+        elif choice == "progress":
             if track == "programming":
-                _show_learning_progress(language, progress)
+                _show_learning_progress(language, progress, cfg)
             else:
-                _show_ai_progress(module, progress)
-        elif choice in ("5", "settings"):
+                _show_ai_progress(module, progress, cfg)
+        elif choice == "settings":
             track, language, module, provider = _change_learning_settings(progress, cfg)
-            if provider == "local" and not progress.get("local_model"):
-                _learning_local_model(progress, cfg, prompt_if_missing=True)
-            if provider == "local":
-                cfg["local_model"] = progress.get("local_model", "")
-            _print_session_status(track, language, module, provider, progress, cfg)
-        else:
-            ui_line("Pick 1, 2, 3, 4, 5, or 6.", color=ANSI.amber)
+            progress["onboarding_complete"] = True
+            save_learning_progress(progress)
+            cfg = _apply_progress_models(cfg, progress)
 
 
 # ── Web intelligence (one Claude call with web search) ────────────────────

@@ -88,27 +88,30 @@ def ai_doc(module: str) -> tuple[str, int]:
     ]
 
     for lesson in lessons:
+        view = learn._ai_lesson_view(module, lesson)
         lines += [
             f"## Lesson {lesson['day']}: {lesson['title']}",
             "",
             f"Objective: {lesson['objective']}",
             "",
-            "Concepts taught:",
+            "Context:",
         ]
+        for paragraph in view.get("context_paragraphs", []):
+            lines += [paragraph, ""]
+
+        lines += ["Key ideas:"]
         for item in lesson.get("fundamentals", []):
             lines.append(f"- {item}")
-
-        if lesson.get("example"):
-            lines += ["", f"{lesson.get('example_title', 'Example')}:", *fence(lesson["example"])]
 
         quiz, _answers = lesson["quiz"]
         lines += [
             "",
-            f"Practice: {lesson.get('build', '')}",
-            "",
             f"Quick check: {quiz}",
             "",
+            f"Coding problem: {lesson.get('build', '')}",
+            "",
         ]
+        lines.append("")
 
     write_doc(OUT_DIR / filename, lines)
     return filename, len(lessons)
