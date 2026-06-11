@@ -5,9 +5,9 @@ They are generated from the same `learn.py` curriculum data used by the terminal
 
 ## Programming Courses
 
-- [Python](programming-python.md) - 34 lessons
-- [C](programming-c.md) - 42 lessons
-- [Java](programming-java.md) - 40 lessons
+- [Python](programming-python.md) - 41 lessons
+- [C](programming-c.md) - 51 lessons
+- [Java](programming-java.md) - 45 lessons
 
 ## AI Courses
 

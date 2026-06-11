@@ -1,6 +1,6 @@
 # Python Programming Course Coverage
 
-Total lessons: 34
+Total lessons: 41
 
 This file is generated from `learn.py` and mirrors the CLI lesson order.
 
@@ -13,6 +13,8 @@ Concepts taught:
 - You assign with '=': the name goes on the left, the value on the right.
 - Pick clear names (score, user_name) so the code explains itself.
 - Printing a variable shows its current value, which is how you check your work.
+- When you read code, track each variable's current value and the line where that value last changed.
+- A useful variable name says what the value means in the problem, not only what type it has.
 
 Example:
 ```python
@@ -35,6 +37,8 @@ Concepts taught:
 - The type decides what operations are legal: adding numbers differs from joining text.
 - Converting (casting) turns one type into another, e.g. the text "42" into the number 42.
 - Mixing types carelessly is a common bug, so always know what type a value is.
+- Types are also promises: a function that expects an int should not receive unparsed text, and a pointer should not receive a plain value.
+- When a value crosses a boundary such as input, file parsing, or function parameters, re-check the type assumption at that boundary.
 
 Example:
 ```python
@@ -49,7 +53,34 @@ Practice: Make a variable holding the text "10", convert it to a number, add 5, 
 
 Quick check: Why do types matter?
 
-## Day 3: Input and simple programs
+## Day 3: Bitwise operations
+
+Objective: Manipulate individual bits with AND, OR, XOR, NOT, and shifts.
+
+Concepts taught:
+- Bitwise operators work on the binary representation of integers, one bit position at a time.
+- The core operators are AND (&), OR (|), XOR (^), NOT/complement (~), left shift (<<), and right shift (>>).
+- AND keeps a bit only when both inputs have 1 there; OR keeps it when either input has 1; XOR keeps it when the bits differ.
+- A mask is an integer with 1s in the positions you want to inspect or change.
+- Use flags by assigning each option a power-of-two value, combining options with |, testing with &, toggling with ^, and clearing with & plus a complemented mask.
+- Left shift by k moves bits left and is equivalent to multiplying unsigned values by 2^k when no overflow occurs.
+- Right shift by k moves bits right; unsigned shifts behave like division by 2^k, while signed behavior depends on the language.
+- Parenthesize bit tests such as (flags & READ) != 0 because comparison and bitwise precedence rules are easy to misread.
+
+Example:
+```python
+READ, WRITE, EXEC = 4, 2, 1
+flags = READ | WRITE            # combine flags
+print((flags & WRITE) != 0)     # test a flag
+flags ^= EXEC                   # toggle execute
+print(flags)
+```
+
+Practice: Create READ=4, WRITE=2, and EXEC=1 flags. Combine READ and WRITE, print whether WRITE is enabled, then toggle EXEC and print the final flag value.
+
+Quick check: Which bitwise operator tests whether a flag bit is present?
+
+## Day 4: Input and simple programs
 
 Objective: Read user input and turn it into useful values.
 
@@ -58,6 +89,8 @@ Concepts taught:
 - Input almost always arrives as text, even when the user types digits.
 - Before doing math on it, convert that text into a number (int or float).
 - Guard against unexpected input so the program does not crash.
+- Treat user input as untrusted: validate that it exists, has the expected shape, and can be converted before using it.
+- Separate reading input from processing it so the core logic can be tested without typing at the console.
 
 Example:
 ```python
@@ -71,7 +104,7 @@ Practice: Ask the user for their age, convert the typed text to a number, add 1,
 
 Quick check: What should you usually do before using numeric input?
 
-## Day 4: Conditionals
+## Day 5: Conditionals
 
 Objective: Use if/else logic to make decisions.
 
@@ -80,6 +113,8 @@ Concepts taught:
 - 'if' runs a block only when its condition is true; 'else' covers the other case; else-if chains more checks.
 - Comparison operators (==, !=, <, >, <=, >=) produce the booleans you test.
 - Combine conditions with and / or / not to express richer rules.
+- Order conditions from most specific to most general when only one branch should run.
+- Write the boundary values next to the condition, then test exactly those boundaries.
 
 Example:
 ```python
@@ -94,7 +129,7 @@ Practice: Set a number variable. Print 'positive' if it is greater than 0, 'nega
 
 Quick check: Which construct lets code choose between branches?
 
-## Day 5: Loops
+## Day 6: Loops
 
 Objective: Repeat work with for/while loops and trace loop state.
 
@@ -103,6 +138,8 @@ Concepts taught:
 - Use a 'for' loop when you know how many times or are walking a collection; use 'while' to repeat until a condition turns false.
 - The loop variable changes each pass; tracing it by hand reveals how the loop behaves.
 - Make sure the loop can end, or it runs forever (an infinite loop).
+- Before writing a loop, name the loop invariant: what should be true before and after every pass.
+- Trace the first iteration, a middle iteration, and the final iteration to catch off-by-one mistakes.
 
 Example:
 ```python
@@ -115,7 +152,7 @@ Practice: Use a loop to print the numbers 1 through 10, each on its own line.
 
 Quick check: What do loops help you avoid writing repeatedly?
 
-## Day 6: Functions and methods
+## Day 7: Functions and methods
 
 Objective: Package logic into reusable units with parameters and returns.
 
@@ -124,6 +161,8 @@ Concepts taught:
 - Parameters are the inputs you pass in; the return value is the result you get back.
 - Calling a function runs its body with the arguments you supply.
 - Functions keep code short, testable, and free of duplication.
+- A strong function has one job, a small parameter list, and a return value or side effect that is easy to describe.
+- If a function mutates data, say who owns that data and whether callers can see the mutation.
 
 Example:
 ```python
@@ -137,7 +176,32 @@ Practice: Write a function called square that takes one number and returns it mu
 
 Quick check: What keyword returns a value from a function/method?
 
-## Day 7: Arrays and lists
+## Day 8: Reading and translating pseudo-code
+
+Objective: Read algorithmic pseudo-code and translate it faithfully to code.
+
+Concepts taught:
+- Pseudo-code describes an algorithm without committing to one programming language's syntax.
+- Common notation includes arrows for assignment, 'for i = 1 to n' loops, 'while condition do', 'if/then/else', and mathematical symbols such as infinity.
+- Translate structure first: function signature, base cases, loops, conditionals, and return points.
+- Then translate data access carefully; pseudo-code is often 1-indexed and inclusive, while C, Java, and Python arrays are 0-indexed.
+- Preserve the invariant the pseudo-code relies on, such as 'left half is already sorted' during merge sort.
+- Verify the translation by tracing both versions on the same tiny input and comparing intermediate state, not just the final answer.
+- The most common translation bugs are off-by-one loop bounds, missing recursive base cases, and copying mathematical notation without adapting it to real code.
+
+Example:
+```python
+total = 0
+for i in range(1, 6):           # pseudo-code "1 to 5" is inclusive
+    total += i
+print(total)                    # 15
+```
+
+Practice: Translate this pseudo-code to working code and print the result: total <- 0; for i = 1 to 5 do total <- total + i; return total. It should print 15.
+
+Quick check: What kind of bug often appears when translating 1-indexed pseudo-code to real arrays?
+
+## Day 9: Arrays and lists
 
 Objective: Store many values and iterate through them safely.
 
@@ -146,6 +210,8 @@ Concepts taught:
 - Each item has an index; most languages start at 0, so the first item is index 0.
 - You loop over the items to process them one by one.
 - Reading past the last valid index is a classic out-of-bounds error.
+- Arrays are best when you need compact indexed storage and predictable traversal.
+- Always connect the loop bounds to the array length; hard-coded lengths become bugs when input size changes.
 
 Example:
 ```python
@@ -158,7 +224,7 @@ Practice: Make an array/list of the three numbers 3, 1, 4. Loop through it and p
 
 Quick check: What is the first index in most C/Python/Java arrays?
 
-## Day 8: Strings
+## Day 10: Strings
 
 Objective: Process text by indexing, slicing, comparing, and counting.
 
@@ -167,6 +233,8 @@ Concepts taught:
 - You can index single characters, slice ranges, measure length, and compare strings.
 - Strings are often immutable, so 'changing' one usually builds a new string.
 - Many problems (palindromes, counting) are just careful string traversal.
+- Text processing is usually parsing: strip noise, split into meaningful parts, validate the parts, then convert types.
+- In C, remember that a string is a char array ending with '\0'; forgetting room for that terminator causes memory bugs.
 
 Example:
 ```python
@@ -179,7 +247,7 @@ Practice: Set a variable to the word "hello". Print its length (5), then print j
 
 Quick check: What is a string made of?
 
-## Day 9: Hash maps and dictionaries
+## Day 11: Hash maps and dictionaries
 
 Objective: Use key-value lookup to reduce repeated scans.
 
@@ -188,6 +256,8 @@ Concepts taught:
 - Looking up, inserting, and updating by key are about constant time (O(1)) on average.
 - They shine when you would otherwise scan a list repeatedly, e.g. counting occurrences.
 - Keys are unique; assigning an existing key overwrites its value.
+- Hash maps trade ordering for fast access; choose them when the key is the natural way to find the value.
+- Reason about the key's equality rule first because the hash table is only correct when equal keys are treated consistently.
 
 Example:
 ```python
@@ -201,7 +271,7 @@ Practice: Count how many times each letter appears in the word "apple" using a h
 
 Quick check: What is the main advantage of a hash map lookup?
 
-## Day 10: Stacks
+## Day 12: Stacks
 
 Objective: Model last-in-first-out workflows and parentheses problems.
 
@@ -210,6 +280,8 @@ Concepts taught:
 - The two core operations are push (add to the top) and pop (remove from the top).
 - Think of a stack of plates: you take the top one.
 - Stacks model undo history, function calls, and matching brackets/parentheses.
+- Stacks are a control-flow data structure: they remember what must be finished later.
+- When debugging stack logic, write the stack contents after each push and pop.
 
 Example:
 ```python
@@ -224,7 +296,7 @@ Practice: Push the numbers 1, 2, then 3 onto a stack. Pop them off one at a time
 
 Quick check: Which item is removed first from a stack?
 
-## Day 11: Two pointers
+## Day 13: Two pointers
 
 Objective: Solve sorted-array and in-place problems with two indexes.
 
@@ -233,6 +305,8 @@ Concepts taught:
 - Common setups: one pointer at each end moving inward, or a slow/fast pair moving the same way.
 - It works best on sorted arrays or when pairing/comparing elements.
 - It often turns an O(n^2) scan into a single O(n) pass.
+- The pointer movement rule is the algorithm: be able to explain why moving left or right cannot skip a valid answer.
+- Stop conditions matter; left < right is different from left <= right when the same element cannot be used twice.
 
 Example:
 ```python
@@ -253,7 +327,7 @@ Practice: Given the sorted list [1, 2, 3, 4, 6], use one pointer at each end to 
 
 Quick check: Two pointers usually means tracking how many indexes?
 
-## Day 12: Sliding window
+## Day 14: Sliding window
 
 Objective: Track a moving range for substring and subarray problems.
 
@@ -262,6 +336,8 @@ Concepts taught:
 - Expand the window by moving the right edge; shrink it by moving the left edge.
 - Keep a running total or count so you do not recompute the whole window each step.
 - Great for 'longest/shortest/best run that satisfies X' problems.
+- A window solution depends on maintaining a summary, such as count, sum, or frequency map, as the endpoints move.
+- Ask whether the constraint is fixed-size or variable-size because that decides whether the left edge moves every step or only when invalid.
 
 Example:
 ```python
@@ -279,7 +355,7 @@ Practice: Given [2, 1, 5, 1, 3, 2], use a window of size 3 to find and print the
 
 Quick check: A sliding window tracks a moving what?
 
-## Day 13: Binary search
+## Day 15: Binary search
 
 Objective: Cut a sorted or monotonic search space in half.
 
@@ -288,6 +364,8 @@ Concepts taught:
 - Check the middle: if it matches you are done; otherwise discard the half that cannot contain it.
 - It needs sorted data, or any condition that is monotonic (false then true).
 - It runs in O(log n), far faster than scanning every element.
+- Binary search is not only for arrays; it works on any answer space where the predicate changes one direction.
+- Use one consistent interval convention, such as closed [lo, hi] or half-open [lo, hi), and keep the update rules matched to it.
 
 Example:
 ```python
@@ -308,7 +386,7 @@ Practice: Given the sorted list [1, 3, 5, 7, 9], use binary search to find the v
 
 Quick check: Binary search requires sorted data or what kind of predicate?
 
-## Day 14: Classes and objects
+## Day 16: Classes and objects
 
 Objective: Group data and behavior into reusable types.
 
@@ -317,6 +395,8 @@ Concepts taught:
 - An object is one instance made from that class, with its own copy of the data.
 - Methods act on the object's own data (this / self).
 - Classes help model real things and keep related code together.
+- Classes are strongest when they protect a small set of invariants behind methods.
+- Fields describe state; methods describe allowed state transitions.
 
 Example:
 ```python
@@ -331,7 +411,7 @@ Practice: Define a class called Dog with a name and a method bark() that prints 
 
 Quick check: Classes group data with what?
 
-## Day 15: Linked lists
+## Day 17: Linked lists
 
 Objective: Reason about nodes, next pointers, and pointer rewiring.
 
@@ -340,6 +420,9 @@ Concepts taught:
 - Unlike an array there is no direct index, so you reach an item by following next pointers.
 - Inserting or removing is cheap once you are at the spot (just rewire pointers); finding the spot is O(n).
 - The list ends when a node's next is null/None.
+- Diagram each node as data plus next, and draw arrows before coding an insert or delete.
+- If you overwrite a next pointer before saving the rest of the list, the diagram shows the lost chain immediately.
+- Linked lists make local insert/delete cheap only after you already have the relevant node or previous node.
 
 Example:
 ```python
@@ -360,7 +443,7 @@ Practice: Build a linked list of three nodes holding 1, 2, 3. Then walk the list
 
 Quick check: A linked list node stores a value and a reference to what?
 
-## Day 16: Recursion
+## Day 18: Recursion
 
 Objective: Solve a problem by reducing it to smaller versions.
 
@@ -369,6 +452,8 @@ Concepts taught:
 - Every recursion needs a base case that stops it, or it never ends (stack overflow).
 - Each call must move closer to the base case.
 - Many tree and divide-and-conquer problems are naturally recursive.
+- Write the base case first, then the smaller recursive call, then how the current frame combines that result.
+- A recursion trace is a stack trace: each call has its own parameters and locals.
 
 Example:
 ```python
@@ -384,7 +469,7 @@ Practice: Write a recursive function that computes the factorial of a number (n!
 
 Quick check: What must every recursive solution have?
 
-## Day 17: Trees
+## Day 19: Trees
 
 Objective: Traverse tree-shaped data with DFS and BFS.
 
@@ -393,6 +478,9 @@ Concepts taught:
 - A binary tree limits each node to at most two children (left and right).
 - Visit nodes with traversals: depth-first (DFS: pre/in/post-order) or breadth-first (BFS, level by level).
 - Trees model file systems, decisions, and sorted data (binary search trees).
+- Draw tree nodes as values with left and right child links; omitted children are null leaves.
+- For DFS, draw the call stack beside the tree; for BFS, draw the queue contents at each level.
+- Visualization tools are useful because they make traversal order and frontier state visible.
 
 Example:
 ```python
@@ -420,7 +508,7 @@ Practice: Build a small binary tree: a root holding 1 with children 2 and 3. Wri
 
 Quick check: What is the top node of a tree called?
 
-## Day 18: Graphs
+## Day 20: Graphs
 
 Objective: Represent connections and traverse with BFS/DFS.
 
@@ -429,6 +517,9 @@ Concepts taught:
 - Common representations: an adjacency list (each node lists its neighbors) or an adjacency matrix.
 - Traverse with BFS (level by level, good for shortest unweighted paths) or DFS (go deep first).
 - Track visited nodes so you do not loop forever on cycles.
+- Draw nodes as circles and edges as arrows or lines; write weights directly on weighted edges.
+- Adjacency lists are usually better for sparse graphs; adjacency matrices make edge lookup simple but cost O(V^2) space.
+- For BFS, number nodes by discovery order; for DFS, mark when the search backtracks; for Dijkstra, track frontier distances.
 
 Example:
 ```python
@@ -449,7 +540,7 @@ Practice: Store this graph as an adjacency list: node 0 connects to 1 and 2; nod
 
 Quick check: Graph traversal usually uses BFS or what?
 
-## Day 19: Dynamic programming
+## Day 21: Dynamic programming
 
 Objective: Define state, recurrence, base cases, and order.
 
@@ -458,6 +549,9 @@ Concepts taught:
 - Define the state (what a subproblem means), the recurrence (how states combine), and the base cases.
 - Store (memoize) computed answers so each subproblem is solved only once.
 - It turns exponential brute force into polynomial time when subproblems repeat.
+- DP becomes manageable when you can say exactly what one table cell or memo entry means.
+- Pascal's triangle is a clear DP model: each interior value depends on the two values above it.
+- Counting operations alongside runtime helps connect the recurrence to empirical growth.
 
 Example:
 ```python
@@ -475,7 +569,7 @@ Practice: Compute the 10th Fibonacci number by storing each answer in an array/d
 
 Quick check: DP usually stores answers to smaller what?
 
-## Day 20: Heaps and priority queues
+## Day 22: Heaps and priority queues
 
 Objective: Repeatedly access the smallest or largest item efficiently.
 
@@ -484,6 +578,8 @@ Concepts taught:
 - Push and pop are O(log n); peeking at the top item is O(1).
 - Use it as a priority queue when you repeatedly need the next most-important item.
 - It is ideal for top-k, scheduling, and merging sorted streams.
+- A heap gives priority order, not full sorted order; only the root is guaranteed to be the next item.
+- Dijkstra uses a min-heap so the next expanded node is the currently cheapest frontier node.
 
 Example:
 ```python
@@ -498,7 +594,7 @@ Practice: Put the numbers 5, 1, 8, 3 into a min-heap / priority queue, then remo
 
 Quick check: A heap is useful when repeatedly taking the min or what?
 
-## Day 21: Matrices
+## Day 23: Matrices
 
 Objective: Traverse rows, columns, and neighbors without index bugs.
 
@@ -507,6 +603,8 @@ Concepts taught:
 - The outer loop usually walks rows; the inner loop walks columns.
 - Neighbors are the cells up/down/left/right (sometimes diagonals); check bounds before accessing.
 - Off-by-one errors and swapped row/column indexes are the most common bugs.
+- Always name dimensions as rows first, columns second; grid[r][c] means row r, column c.
+- When matrices represent graphs, matrix[i][j] means the edge from i to j; zero often means no edge unless zero-weight edges are allowed.
 
 Example:
 ```python
@@ -522,7 +620,7 @@ Practice: Make a 2x3 grid of numbers ([[1,2,3],[4,5,6]]). Loop through it and pr
 
 Quick check: A matrix is indexed by row and what?
 
-## Day 22: Design problems
+## Day 24: Design problems
 
 Objective: Build small APIs that preserve invariants over operations.
 
@@ -531,6 +629,8 @@ Concepts taught:
 - Focus on the invariants: the rules that must stay true after every operation.
 - Pick data structures that make the required operations efficient.
 - Think through edge cases: empty state, capacity limits, and repeated keys.
+- Start design problems by listing operations, required complexity, and invariants.
+- A good design makes invalid states hard to create and easy to detect in tests.
 
 Example:
 ```python
@@ -553,7 +653,7 @@ Practice: Design a Stack class with a capacity of 2 whose push() ignores new ite
 
 Quick check: Design problems are mostly about preserving what over operations?
 
-## Day 23: Python basics and environment
+## Day 25: Python basics and environment
 
 Objective: Use the REPL, scripts, IDEs, dynamic typing, numeric types, strings, truthiness, None, and docstrings.
 
@@ -563,6 +663,8 @@ Concepts taught:
 - Numeric types include int, float, and complex; / produces true division and // produces floor division.
 - Strings support slicing, f-strings, common methods, and Unicode text by default.
 - Truthiness, None, comments, and docstrings are basic tools for readable Python programs.
+- Use the REPL for quick experiments, but put repeatable work in scripts so it can be rerun and tested.
+- Python's dynamic typing gives speed while writing; type hints give readers and tools the missing intent.
 
 Example:
 ```python
@@ -578,7 +680,7 @@ Practice: Write a Python script that demonstrates int, float, complex, / vs //, 
 
 Quick check: What Python value represents no value?
 
-## Day 24: Python control flow
+## Day 26: Python control flow
 
 Objective: Use if/elif/else, loops, range, break, continue, pass, nested tracing, and match-case.
 
@@ -588,6 +690,8 @@ Concepts taught:
 - while loops continue until their condition becomes false, so loop state must change.
 - break exits, continue skips, and pass is an explicit placeholder.
 - match-case can express structural pattern matching for fixed shapes and tagged data.
+- Python indentation is syntax, so formatting changes program behavior.
+- A loop over a file, dictionary, or generator consumes values lazily, which can be useful for large inputs.
 
 Example:
 ```python
@@ -606,7 +710,7 @@ Practice: Write a Python program that uses if/elif/else, for/range, while, break
 
 Quick check: What Python statement is an explicit no-op placeholder?
 
-## Day 25: Functions, scope, and call patterns
+## Day 27: Functions, scope, and call patterns
 
 Objective: Write Python functions with defaults, keyword args, *args, **kwargs, lambdas, LEGB scope, and recursion.
 
@@ -617,6 +721,8 @@ Concepts taught:
 - Lambdas create small anonymous functions, usually for callbacks or key functions.
 - Higher-order functions accept or return functions, such as map, filter, and sorted(key=...).
 - Type hints document intended types and help tools, but Python still checks most types at runtime.
+- Default arguments are evaluated once at function definition time, so avoid mutable defaults like [].
+- Closures and lambdas are powerful, but named functions are clearer when behavior is reused or tested.
 
 Example:
 ```python
@@ -631,7 +737,7 @@ Practice: Write a function summarize(*nums, scale=1, **labels), use a lambda as 
 
 Quick check: What acronym describes Python name lookup order?
 
-## Day 26: Built-in data structures
+## Day 28: Built-in data structures
 
 Objective: Use lists, tuples, dictionaries, sets, comprehensions, unpacking, and copy semantics.
 
@@ -641,6 +747,8 @@ Concepts taught:
 - Sets store unique items and support union, intersection, and difference.
 - Comprehensions build lists, dicts, and sets from compact loop/filter expressions, and generator expressions stay lazy.
 - Shallow copies duplicate the outer container; deep copies recursively copy nested objects.
+- Python containers are references to objects; copying a list does not automatically deep-copy nested values.
+- Choose dictionaries for lookup, sets for uniqueness, lists for order, and tuples for fixed records.
 
 Example:
 ```python
@@ -655,7 +763,33 @@ Practice: Use a list comprehension, dict comprehension, set operation, tuple unp
 
 Quick check: Which Python built-in stores unique items?
 
-## Day 27: Strings, regex, and encodings
+## Day 29: Bitwise operations in Python
+
+Objective: Use Python bitwise operators, masks, shifts, and arbitrary-size integer behavior.
+
+Concepts taught:
+- Python supports &, |, ^, ~, <<, and >> on integers, just like lower-level languages.
+- Python integers grow as large as needed, so you do not naturally overflow at 32 or 64 bits.
+- Use masks with explicit widths when simulating C-style behavior, for example value & 0xffffffff.
+- Left shift multiplies by powers of two, and right shift performs arithmetic shift on signed integers.
+- Bit flags still work well in Python when you need compact option sets or LeetCode bit-manipulation practice.
+- bin(x), x.bit_count(), int.to_bytes, and int.from_bytes are useful helpers when inspecting or packing bits.
+- Parenthesize bit tests such as (flags & READ) != 0 for clarity even when Python precedence would allow shorter code.
+
+Example:
+```python
+READ, WRITE, EXEC = 1 << 2, 1 << 1, 1
+flags = READ | WRITE
+can_write = (flags & WRITE) != 0
+flags &= ~READ                  # clear READ
+print(can_write, flags, bin(flags))
+```
+
+Practice: Write Python helpers to set, clear, toggle, and test a flag bit. Demonstrate them with READ, WRITE, and EXEC flags.
+
+Quick check: What Python integer method counts set bits?
+
+## Day 30: Strings, regex, and encodings
 
 Objective: Process text with string methods, formatting, regular expressions, and UTF-8 awareness.
 
@@ -665,6 +799,8 @@ Concepts taught:
 - The re module supports matching, searching, findall, and substitution with regular expressions.
 - ASCII is a small character set; UTF-8 can encode all Unicode characters and is the default expectation for most modern text.
 - Text pipelines should be explicit about encoding when reading files from unknown sources.
+- Prefer simple string methods before regex when the delimiter or transformation is straightforward.
+- Always specify encoding when reading course data or generated files that may move across machines.
 
 Example:
 ```python
@@ -679,7 +815,7 @@ Practice: Parse a comma-separated sentence using split/strip, rebuild it with jo
 
 Quick check: What Python module provides regular expressions?
 
-## Day 28: File I/O and data handling
+## Day 31: File I/O and data handling
 
 Objective: Read and write text, binary, CSV, JSON, command-line arguments, and argparse options.
 
@@ -689,6 +825,8 @@ Concepts taught:
 - The csv module handles commas, quotes, and rows better than manual splitting.
 - json.loads and json.dumps convert between JSON text and Python data.
 - sys.argv is raw command-line input; argparse gives typed options, help text, and validation.
+- Use newline='' with csv files so the csv module handles line endings correctly.
+- argparse makes scripts usable by other people because it documents inputs and validates options.
 
 Example:
 ```python
@@ -705,7 +843,7 @@ Practice: Read a CSV file, convert rows to dictionaries, write JSON output, and 
 
 Quick check: What statement should you use so files close automatically?
 
-## Day 29: Python error handling
+## Day 32: Python error handling
 
 Objective: Handle exceptions with try/except/else/finally, raise custom exceptions, and use assertions.
 
@@ -715,6 +853,8 @@ Concepts taught:
 - Common exceptions include ValueError, TypeError, KeyError, IndexError, and FileNotFoundError.
 - raise reports a failure intentionally, and custom exception classes make domain errors clearer.
 - assert is useful for internal sanity checks, not for validating user input in production.
+- Catch the narrowest exception you can handle; broad except blocks hide real bugs.
+- Use exception messages that include the bad value or context needed to diagnose the failure.
 
 Example:
 ```python
@@ -732,7 +872,7 @@ Practice: Write a safe_int function that catches ValueError, raises a custom Inv
 
 Quick check: What keyword intentionally raises an exception?
 
-## Day 30: Object-oriented Python
+## Day 33: Object-oriented Python
 
 Objective: Build classes with dunder methods, inheritance, properties, dataclasses, and abstract base classes.
 
@@ -742,6 +882,8 @@ Concepts taught:
 - Dunder methods such as __str__, __repr__, __eq__, __hash__, and __lt__ integrate objects with Python syntax.
 - Inheritance and super reuse behavior, while multiple inheritance follows the method resolution order.
 - @property, dataclasses, and abstract base classes from abc help express clean object APIs.
+- Dataclasses are excellent for data-focused classes, but behavior-heavy objects still need clear methods and invariants.
+- Dunder methods let your objects participate naturally in printing, comparison, hashing, and containers.
 
 Example:
 ```python
@@ -759,7 +901,7 @@ Practice: Create a @dataclass Point with __str__, __eq__, __lt__, a @property, a
 
 Quick check: What method initializes a Python object?
 
-## Day 31: Iterators, generators, and decorators
+## Day 34: Iterators, generators, and decorators
 
 Objective: Implement iteration protocols, yield generators, decorators, functools.wraps, and context managers.
 
@@ -769,6 +911,8 @@ Concepts taught:
 - Generator expressions are lazy versions of list comprehensions.
 - Decorators wrap functions with extra behavior while keeping the call site unchanged.
 - Context managers define __enter__ and __exit__, or use contextlib, to manage setup and cleanup.
+- Generators are ideal when you can produce values one at a time instead of storing an entire result list.
+- Decorators should preserve metadata with functools.wraps so debugging and docs still show the original function name.
 
 Example:
 ```python
@@ -789,7 +933,7 @@ Practice: Write a countdown generator, a timing/logging decorator with functools
 
 Quick check: What keyword makes a generator function produce values lazily?
 
-## Day 32: Modules, packages, and environments
+## Day 35: Modules, packages, and environments
 
 Objective: Organize imports, packages, virtual environments, requirements, standard library modules, and main guards.
 
@@ -800,6 +944,8 @@ Concepts taught:
 - Virtual environments isolate installed packages so projects do not break each other.
 - requirements.txt records dependencies; pip installs them into the active environment.
 - if __name__ == '__main__' keeps script behavior separate from import behavior.
+- A main guard keeps importable code from running side effects during tests.
+- Virtual environments make dependency problems local to one project instead of system-wide.
 
 Example:
 ```python
@@ -816,7 +962,7 @@ Practice: Sketch a package layout with __init__.py, a main guard, requirements.t
 
 Quick check: What file commonly records Python package dependencies?
 
-## Day 33: Testing in Python
+## Day 36: Testing in Python
 
 Objective: Write unittest and pytest tests with fixtures, parametrization, mocks, coverage, and TDD workflow.
 
@@ -826,6 +972,8 @@ Concepts taught:
 - TDD writes a failing test first, then implements the smallest code that passes.
 - Mocks replace slow or external dependencies so tests stay focused and repeatable.
 - Coverage helps reveal untested code paths but does not prove the assertions are meaningful.
+- Parametrized tests turn a table of examples into one readable test body.
+- For lab harnesses, tests should report the command run, stdout, stderr, return code, and timeout status.
 
 Example:
 ```python
@@ -842,7 +990,119 @@ Practice: Write pytest tests with one fixture, one parametrize case, and one moc
 
 Quick check: What pytest feature supplies reusable test setup?
 
-## Day 34: Python for AI/ML readiness
+## Day 37: Test automation with subprocess
+
+Objective: Automate running compiled programs, capture output, and verify results from Python.
+
+Concepts taught:
+- Python is often used as a harness around compiled C programs because it can launch processes, capture output, and summarize results quickly.
+- subprocess.run([...], capture_output=True, text=True, timeout=5) returns a CompletedProcess with stdout, stderr, and returncode.
+- Always pass the command as a list of arguments, not one shell string, unless you specifically need shell behavior.
+- A timeout turns infinite loops or stuck programs into a reported TIMEOUT result instead of a hung test suite.
+- The harness pattern is: build argv, run the program, inspect returncode, parse stdout/stderr, compare expected output, record the result, and print a summary.
+- Use csv.writer or csv.DictWriter when the output should become a spreadsheet or graph.
+- Use difflib.unified_diff for helpful expected-vs-actual output when a program prints the wrong text.
+
+Example:
+```python
+import subprocess
+result = subprocess.run(
+    ["./pascal", "10"], capture_output=True, text=True, timeout=5
+)
+passed = result.returncode == 0 and "252" in result.stdout
+print("PASS" if passed else "FAIL", result.stderr)
+```
+
+Practice: Write a Python harness that runs a compiled program with subprocess.run, captures stdout/stderr, enforces a timeout, and records pass/fail rows.
+
+Quick check: What subprocess.run argument prevents a hung program from blocking forever?
+
+## Day 38: Runtime benchmarking in Python
+
+Objective: Measure execution time with timeit and perf_counter, and interpret empirical results.
+
+Concepts taught:
+- timeit runs a small statement many times and reduces noise from setup overhead.
+- timeit.repeat gives multiple trials so you can compare the minimum, median, or spread.
+- time.perf_counter() is the right clock for elapsed wall time around larger blocks of code.
+- time.process_time() measures CPU time and excludes sleep or much I/O waiting.
+- Benchmark the computation separately from printing, file reading, random input generation, and plotting.
+- Python timings are noisier than C because interpreter overhead, garbage collection, and object allocation are part of the runtime.
+- Use timing data to compare growth curves, such as list-based Dijkstra versus heap-based Dijkstra as graph density changes.
+
+Example:
+```python
+import timeit
+elapsed = timeit.repeat(
+    "sum(range(1000))", repeat=5, number=1000
+)
+print(min(elapsed))
+```
+
+Practice: Use timeit.repeat or perf_counter to compare two functions over increasing input sizes, then print a small timing table.
+
+Quick check: What Python module is designed for repeatable microbenchmarks?
+
+## Day 39: Random test data in Python
+
+Objective: Use the random module to generate arrays, graphs, and test fixtures.
+
+Concepts taught:
+- random.seed(42) makes generated cases deterministic, which is essential for replaying a failure.
+- random.randint(a, b) includes both endpoints; random.randrange(n) gives values in [0, n).
+- random.random() returns a float in [0.0, 1.0), useful for probability-based graph edge generation.
+- random.shuffle(list) permutes a list in place; random.sample draws unique items without replacement.
+- Generate cases by shape, not only size: empty, one item, sorted, reversed, random, duplicate-heavy, sparse graph, and dense graph.
+- Log the seed, parameters, and generated input when a random test fails.
+- Random tests are strongest when paired with assertions that verify invariants, such as 'the output is sorted' or 'all generated edges reference valid nodes'.
+
+Example:
+```python
+import random
+random.seed(42)
+values = [random.randint(0, 100) for _ in range(10)]
+sorted_values = sorted(values)
+print(values, sorted_values == sorted(sorted_values))
+```
+
+Practice: Generate reproducible random arrays and graphs with random.seed(42), then assert basic invariants such as sorted output or valid edge endpoints.
+
+Quick check: What random module function makes generated tests reproducible?
+
+## Day 40: Graph algorithms in Python
+
+Objective: Implement and compare graph algorithms with adjacency maps, heapq, and density-aware testing.
+
+Concepts taught:
+- Python graph code usually represents an adjacency list as a dict mapping each node to neighbor nodes or (neighbor, weight) pairs.
+- Dijkstra's algorithm tracks the best-known distance to each node and repeatedly expands the unvisited node with smallest distance.
+- heapq implements a min-priority queue and makes the next-smallest-distance step efficient.
+- A list-based Dijkstra scan can be O(V^2); a heap-based implementation is closer to O((V + E) log V) for adjacency lists.
+- Graph density matters: dense graphs have many edges, so edge processing dominates; sparse graphs make priority-queue overhead more visible.
+- Use float('inf') for unknown distances and a previous-node map when the actual shortest path must be reconstructed.
+- Manual tracing and visualizers help confirm frontier updates before trusting runtime measurements.
+
+Example:
+```python
+import heapq
+graph = {"A": [("B", 1), ("C", 4)], "B": [("C", 2)], "C": []}
+dist = {"A": 0}
+heap = [(0, "A")]
+while heap:
+    d, node = heapq.heappop(heap)
+    for neighbor, weight in graph[node]:
+        nd = d + weight
+        if nd < dist.get(neighbor, float("inf")):
+            dist[neighbor] = nd
+            heapq.heappush(heap, (nd, neighbor))
+print(dist["C"])
+```
+
+Practice: Implement heapq-based Dijkstra for a weighted adjacency dict and compare it against a list-scan version on sparse and dense random graphs.
+
+Quick check: What Python module provides a min-heap priority queue?
+
+## Day 41: Python for AI/ML readiness
 
 Objective: Use NumPy, Pandas, plotting, notebooks, HTTP requests, and async awareness for AI engineering workflows.
 
@@ -852,6 +1112,8 @@ Concepts taught:
 - Matplotlib and Seaborn help inspect distributions, trends, and model results visually.
 - Jupyter notebooks are useful for exploration, but production logic should move into tested modules.
 - AI engineering also needs API calls with requests and basic awareness of async workflows.
+- Notebook exploration should produce reusable functions once the workflow stabilizes.
+- Plots are not just decoration; they reveal outliers, scaling curves, and data quality problems.
 
 Example:
 ```python

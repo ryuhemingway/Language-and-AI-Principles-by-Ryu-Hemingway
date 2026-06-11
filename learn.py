@@ -379,10 +379,12 @@ AI_MODULES = {
 LESSON_TOPICS = [
     ("variables", "Variables and output", "Store values, name them clearly, and print results."),
     ("types", "Types and conversions", "Recognize numbers, text, booleans, and basic casts."),
+    ("bitwise", "Bitwise operations", "Manipulate individual bits with AND, OR, XOR, NOT, and shifts."),
     ("input", "Input and simple programs", "Read user input and turn it into useful values."),
     ("conditionals", "Conditionals", "Use if/else logic to make decisions."),
     ("loops", "Loops", "Repeat work with for/while loops and trace loop state."),
     ("functions", "Functions and methods", "Package logic into reusable units with parameters and returns."),
+    ("pseudocode", "Reading and translating pseudo-code", "Read algorithmic pseudo-code and translate it faithfully to code."),
     ("arrays", "Arrays and lists", "Store many values and iterate through them safely."),
     ("strings", "Strings", "Process text by indexing, slicing, comparing, and counting."),
     ("hash_maps", "Hash maps and dictionaries", "Use key-value lookup to reduce repeated scans."),
@@ -418,6 +420,16 @@ LESSON_EXPLANATIONS = {
         "Converting (casting) turns one type into another, e.g. the text \"42\" into the number 42.",
         "Mixing types carelessly is a common bug, so always know what type a value is.",
     ],
+    "bitwise": [
+        "Bitwise operators work on the binary representation of integers, one bit position at a time.",
+        "The core operators are AND (&), OR (|), XOR (^), NOT/complement (~), left shift (<<), and right shift (>>).",
+        "AND keeps a bit only when both inputs have 1 there; OR keeps it when either input has 1; XOR keeps it when the bits differ.",
+        "A mask is an integer with 1s in the positions you want to inspect or change.",
+        "Use flags by assigning each option a power-of-two value, combining options with |, testing with &, toggling with ^, and clearing with & plus a complemented mask.",
+        "Left shift by k moves bits left and is equivalent to multiplying unsigned values by 2^k when no overflow occurs.",
+        "Right shift by k moves bits right; unsigned shifts behave like division by 2^k, while signed behavior depends on the language.",
+        "Parenthesize bit tests such as (flags & READ) != 0 because comparison and bitwise precedence rules are easy to misread.",
+    ],
     "input": [
         "Programs get useful when they react to data the user types in.",
         "Input almost always arrives as text, even when the user types digits.",
@@ -441,6 +453,15 @@ LESSON_EXPLANATIONS = {
         "Parameters are the inputs you pass in; the return value is the result you get back.",
         "Calling a function runs its body with the arguments you supply.",
         "Functions keep code short, testable, and free of duplication.",
+    ],
+    "pseudocode": [
+        "Pseudo-code describes an algorithm without committing to one programming language's syntax.",
+        "Common notation includes arrows for assignment, 'for i = 1 to n' loops, 'while condition do', 'if/then/else', and mathematical symbols such as infinity.",
+        "Translate structure first: function signature, base cases, loops, conditionals, and return points.",
+        "Then translate data access carefully; pseudo-code is often 1-indexed and inclusive, while C, Java, and Python arrays are 0-indexed.",
+        "Preserve the invariant the pseudo-code relies on, such as 'left half is already sorted' during merge sort.",
+        "Verify the translation by tracing both versions on the same tiny input and comparing intermediate state, not just the final answer.",
+        "The most common translation bugs are off-by-one loop bounds, missing recursive base cases, and copying mathematical notation without adapting it to real code.",
     ],
     "arrays": [
         "An array (or list) stores many values in a single ordered container.",
@@ -571,10 +592,12 @@ LANGUAGE_NOTES = {
 PRACTICE_TASKS = {
     "variables": "Create two variables: one holding your name (text) and one holding your age (a number). Print both on one line, e.g. 'Ryu 21'.",
     "types": 'Make a variable holding the text "10", convert it to a number, add 5, and print the result. It should print 15, not 105.',
+    "bitwise": "Create READ=4, WRITE=2, and EXEC=1 flags. Combine READ and WRITE, print whether WRITE is enabled, then toggle EXEC and print the final flag value.",
     "input": "Ask the user for their age, convert the typed text to a number, add 1, and print 'Next year you will be ' followed by that number.",
     "conditionals": "Set a number variable. Print 'positive' if it is greater than 0, 'negative' if it is less than 0, and 'zero' otherwise.",
     "loops": "Use a loop to print the numbers 1 through 10, each on its own line.",
     "functions": "Write a function called square that takes one number and returns it multiplied by itself. Call square(4) and print the result (16).",
+    "pseudocode": "Translate this pseudo-code to working code and print the result: total <- 0; for i = 1 to 5 do total <- total + i; return total. It should print 15.",
     "arrays": "Make an array/list of the three numbers 3, 1, 4. Loop through it and print their total (8).",
     "strings": 'Set a variable to the word "hello". Print its length (5), then print just its first character (h).',
     "hash_maps": 'Count how many times each letter appears in the word "apple" using a hash map/dictionary, then print the counts.',
@@ -1292,10 +1315,12 @@ EXAMPLE_SNIPPETS["java"].update({
 QUIZ_BY_TOPIC = {
     "variables": ("What is the main purpose of a variable?", ["store a value", "store values", "remember a value"]),
     "types": ("Why do types matter?", ["they define what operations are valid", "valid operations", "memory and operations"]),
+    "bitwise": ("Which bitwise operator tests whether a flag bit is present?", ["&", "and"]),
     "input": ("What should you usually do before using numeric input?", ["convert it", "parse it", "cast it"]),
     "conditionals": ("Which construct lets code choose between branches?", ["if", "if else", "if/else"]),
     "loops": ("What do loops help you avoid writing repeatedly?", ["duplicate code", "repeated code", "repetition"]),
     "functions": ("What keyword returns a value from a function/method?", ["return"]),
+    "pseudocode": ("What kind of bug often appears when translating 1-indexed pseudo-code to real arrays?", ["off by one", "off-by-one", "index"]),
     "arrays": ("What is the first index in most C/Python/Java arrays?", ["0", "zero"]),
     "strings": ("What is a string made of?", ["characters", "chars"]),
     "hash_maps": ("What is the main advantage of a hash map lookup?", ["fast lookup", "o(1)", "constant time"]),
@@ -1348,6 +1373,7 @@ def _ai_lesson(
 AUDIT_LESSON_TOPICS = {
     "java": [
         ("java_language_foundations", "Java language foundations", "Cover CS 5004 Java type systems, operators, arrays, strings, constants, and type safety."),
+        ("java_bitwise_deep", "Bitwise operations in Java", "Use Java bitwise operators, masks, shifts, and unsigned-shift behavior deliberately."),
         ("java_control_flow", "Java control flow", "Use Java branch and loop constructs deliberately, including tracing and early exits."),
         ("java_methods_contracts", "Methods, scope, and contracts", "Design methods with signatures, purpose statements, preconditions, postconditions, scope, and recursion."),
         ("java_classes_constructors", "Classes, objects, and constructors", "Build Java classes with fields, constructors, methods, this, access control, and toString."),
@@ -1362,6 +1388,8 @@ AUDIT_LESSON_TOPICS = {
         ("java_design_patterns", "Design patterns", "Recognize and implement common creational, structural, and behavioral Java design patterns."),
         ("java_mvc", "Model-View-Controller", "Separate model state, view rendering, and controller input using clear interfaces."),
         ("java_testing_debug_docs", "Testing, debugging, and docs", "Write JUnit tests, debug with breakpoints, document with Javadoc, and manage builds with Gradle."),
+        ("java_random_testing", "Random test data in Java", "Generate reproducible arrays, cases, and fixtures with Random and ThreadLocalRandom."),
+        ("java_benchmarking", "Runtime benchmarking in Java", "Measure elapsed time with nanoTime, warm up the JVM, and compare algorithms carefully."),
         ("java_big_o", "Algorithm analysis in Java", "Estimate time and space complexity for loops, recursive methods, ADTs, and divide-and-conquer code."),
         ("java_uml", "UML and diagramming", "Read and draw class diagrams with fields, methods, visibility, inheritance, composition, and dependencies."),
         ("java_packages_builds", "Packages, modules, and organization", "Organize Java projects with packages, imports, JAR/classpath basics, and dependency boundaries."),
@@ -1369,20 +1397,27 @@ AUDIT_LESSON_TOPICS = {
     "c": [
         ("c_systems_linux", "Systems overview and Linux", "Use Linux command-line tools, permissions, shell redirection, gcc flags, and Makefiles."),
         ("c_foundations_headers", "C foundations and headers", "Write C with primitive types, control flow, functions, headers, preprocessing, printf, and scanf."),
+        ("c_command_line_args", "Command-line arguments in C", "Use argc and argv to configure command-line programs without recompiling."),
+        ("c_file_io", "File I/O in C", "Read and write files safely with fopen, fgets, fread, fwrite, and fclose."),
         ("c_pointers_memory", "Pointers and memory management", "Use pointers, arrays, dynamic allocation, pointer parameters, valgrind, and safe memory habits."),
         ("c_structs_types", "Structs and custom data types", "Define structs, typedefs, enums, unions, self-referential nodes, and allocated records."),
         ("c_debug_assembly", "Debugging, assembly, and CPU basics", "Debug C with gdb and connect compiled code to registers, branches, and CPU execution."),
         ("c_compilers_linkers", "Compilers, linkers, and code generation", "Trace preprocessing, compilation, assembly, linking, object files, and symbol resolution."),
+        ("c_function_pointers", "Function pointers in C", "Declare function pointers, build dispatch tables, and use callbacks with qsort."),
+        ("c_bitwise_deep", "Bitwise operations and bit fields in C", "Apply bitwise operators to flags, masks, hashing, and packed struct fields."),
         ("c_processes_memory", "Processes and memory hierarchy", "Explain processes, stack frames, heap/data/text segments, caches, locality, and virtual memory."),
         ("c_concurrency_threads", "Concurrency and threads", "Use pthreads, joins, mutexes, shared state, race-condition reasoning, and deadlock avoidance."),
         ("c_networking_sockets", "Networking and sockets", "Build a basic client-server model with IPs, ports, TCP sockets, send, and recv."),
         ("c_linked_lists_deep", "Linked lists in C", "Implement singly and doubly linked lists with insert, delete, search, traversal, and full cleanup."),
         ("c_stacks_queues", "Stacks and queues in C", "Implement stack and queue ADTs with arrays, linked lists, and circular-buffer tradeoffs."),
         ("c_algorithm_analysis_formal", "Formal algorithm analysis", "Analyze loops and recurrences with Big-O, Omega, Theta, substitution, Master theorem, and amortization."),
+        ("c_benchmarking", "Runtime benchmarking in C", "Time code with clock_gettime, report elapsed seconds, and compare algorithm runtimes."),
         ("c_quadratic_sorts", "Quadratic sorting", "Trace selection, insertion, and bubble sort, including stability and in-place behavior."),
+        ("c_random_testing", "Random test data in C", "Generate random arrays, graphs, and test inputs with reproducible seeds."),
         ("c_nlogn_sorts_proofs", "N log n sorting and proofs", "Implement merge sort and quicksort while reasoning about lower bounds and loop invariants."),
         ("c_trees_heaps", "Trees, heaps, and heap sort", "Implement binary trees, BST operations, heap operations, heap sort, and priority queues."),
         ("c_hash_tables", "Hash tables in C", "Build hash maps with hash functions, chaining, open addressing, load factor, and resizing."),
+        ("c_hash_algorithms", "Hash function design in C", "Implement and compare djb2, FNV-1a, and Jenkins OAAT hash functions."),
         ("c_graph_algorithms", "Graph algorithms", "Represent graphs and implement BFS, DFS, topological sort, Dijkstra, and MST awareness."),
         ("c_greedy", "Greedy algorithms", "Use greedy choice and optimal substructure, and test where greedy algorithms fail."),
         ("c_dynamic_programming_deep", "Dynamic programming in C", "Design memoized and tabulated solutions for Fibonacci, coin change, knapsack, and LCS."),
@@ -1393,6 +1428,7 @@ AUDIT_LESSON_TOPICS = {
         ("python_control_flow_deep", "Python control flow", "Use if/elif/else, loops, range, break, continue, pass, nested tracing, and match-case."),
         ("python_functions_scope", "Functions, scope, and call patterns", "Write Python functions with defaults, keyword args, *args, **kwargs, lambdas, LEGB scope, and recursion."),
         ("python_builtin_data_structures", "Built-in data structures", "Use lists, tuples, dictionaries, sets, comprehensions, unpacking, and copy semantics."),
+        ("python_bitwise_deep", "Bitwise operations in Python", "Use Python bitwise operators, masks, shifts, and arbitrary-size integer behavior."),
         ("python_text_processing", "Strings, regex, and encodings", "Process text with string methods, formatting, regular expressions, and UTF-8 awareness."),
         ("python_file_io_data", "File I/O and data handling", "Read and write text, binary, CSV, JSON, command-line arguments, and argparse options."),
         ("python_error_handling", "Python error handling", "Handle exceptions with try/except/else/finally, raise custom exceptions, and use assertions."),
@@ -1400,6 +1436,10 @@ AUDIT_LESSON_TOPICS = {
         ("python_iterators_generators_decorators", "Iterators, generators, and decorators", "Implement iteration protocols, yield generators, decorators, functools.wraps, and context managers."),
         ("python_modules_packages_envs", "Modules, packages, and environments", "Organize imports, packages, virtual environments, requirements, standard library modules, and main guards."),
         ("python_testing", "Testing in Python", "Write unittest and pytest tests with fixtures, parametrization, mocks, coverage, and TDD workflow."),
+        ("python_test_automation", "Test automation with subprocess", "Automate running compiled programs, capture output, and verify results from Python."),
+        ("python_benchmarking", "Runtime benchmarking in Python", "Measure execution time with timeit and perf_counter, and interpret empirical results."),
+        ("python_random_testing", "Random test data in Python", "Use the random module to generate arrays, graphs, and test fixtures."),
+        ("python_graph_algorithms", "Graph algorithms in Python", "Implement and compare graph algorithms with adjacency maps, heapq, and density-aware testing."),
         ("python_ai_ml_readiness", "Python for AI/ML readiness", "Use NumPy, Pandas, plotting, notebooks, HTTP requests, and async awareness for AI engineering workflows."),
     ],
 }
@@ -1412,6 +1452,15 @@ LESSON_EXPLANATIONS.update({
         "Use final for constants and name variables consistently so intent is visible before a reader studies the expression.",
         "Operators include arithmetic, relational, logical, bitwise, and ternary forms; each has precedence and type rules.",
         "Strings are immutable, so repeated modification should use StringBuilder; casts can widen safely or narrow with risk.",
+    ],
+    "java_bitwise_deep": [
+        "Java bitwise operators work on int and long values: &, |, ^, ~, <<, >>, and >>>.",
+        "Use named constants for masks, usually powers of two such as READ = 1 << 2, WRITE = 1 << 1, and EXEC = 1.",
+        "Combine flags with |, test flags with (flags & READ) != 0, toggle with ^, and clear with flags &= ~READ.",
+        "<< shifts left, >> shifts right while preserving the sign bit, and >>> shifts right while filling with zero bits.",
+        "Bytes and shorts are promoted to int before bitwise work, so cast deliberately when packing or unpacking smaller values.",
+        "Parenthesize bitwise checks because equality and relational operators bind differently than many learners expect.",
+        "Bitwise Java appears in permissions, color channels, hashCode mixing, compact protocol fields, and LeetCode bit-manipulation problems.",
     ],
     "java_control_flow": [
         "if/else-if/else chains select one branch; switch and modern switch expressions are clearer for fixed sets of cases.",
@@ -1515,6 +1564,22 @@ LESSON_EXPLANATIONS.update({
         "Breakpoints, stepping, and watch variables let you inspect runtime state instead of guessing.",
         "Javadoc and Gradle make a project easier to understand, build, test, and share.",
     ],
+    "java_random_testing": [
+        "java.util.Random creates reproducible pseudo-random values when constructed with a fixed seed, such as new Random(42).",
+        "ThreadLocalRandom.current() is convenient for non-reproducible local random values in concurrent code.",
+        "Use nextInt(bound) for integers in [0, bound), nextDouble() for [0.0, 1.0), and Collections.shuffle(list, random) for permutations.",
+        "Random tests should log the seed, input size, and generated case so a failing case can be replayed exactly.",
+        "Generate arrays in multiple shapes: already sorted, reversed, random, duplicate-heavy, empty, and single-element.",
+        "Random testing complements hand-picked boundary cases; it does not replace tests for known edge cases.",
+    ],
+    "java_benchmarking": [
+        "System.nanoTime() is the Java clock for elapsed-time measurement; do not use currentTimeMillis for precise benchmark intervals.",
+        "Measure elapsed seconds as (end - start) / 1_000_000_000.0 after capturing start and end around only the code under test.",
+        "The JVM warms up methods, loads classes, and may JIT-compile hot code, so run warm-up iterations before collecting data.",
+        "Run many trials and report a median or range rather than trusting one timing.",
+        "Avoid printing, allocating unrelated data, or reading files inside the timed region when the goal is to compare algorithms.",
+        "Microbenchmarking Java correctly is hard; for serious work use JMH, but nanoTime is enough to learn growth trends.",
+    ],
     "java_big_o": [
         "Big-O describes how work grows as input size grows, ignoring constant factors.",
         "Common classes include O(1), O(log n), O(n), O(n log n), O(n^2), and O(2^n).",
@@ -1550,6 +1615,25 @@ LESSON_EXPLANATIONS.update({
         "Function prototypes let one file call functions defined later or elsewhere.",
         "printf and scanf require format specifiers that match the actual argument types.",
     ],
+    "c_command_line_args": [
+        "A command-line C program can declare main as int main(int argc, char **argv) or int main(int argc, char *argv[]).",
+        "argc is the argument count; it is at least 1 because argv[0] is the program name.",
+        "argv is an array of C strings; argv[1] is the first user-supplied argument when argc > 1.",
+        "Always check argc before reading argv[i], or the program can read past the argument array.",
+        "Convert numeric arguments with strtol or strtod so you can detect invalid input instead of trusting atoi silently.",
+        "Command-line arguments make tools reusable: the same executable can read different files, choose a sort, or change input size without recompiling.",
+        "Print usage text to stderr and return a nonzero status when required arguments are missing.",
+    ],
+    "c_file_io": [
+        "fopen(path, mode) returns a FILE* or NULL on failure; always check the return value before using the handle.",
+        "Common modes are \"r\" for read, \"w\" for overwrite/write, \"a\" for append, and binary variants such as \"rb\" and \"wb\".",
+        "fgets(buffer, size, file) reads at most size - 1 characters, stops at newline or EOF, and always null-terminates when it succeeds.",
+        "Strip a trailing newline after fgets when the line represents a name, key, or token rather than a whole printed line.",
+        "fscanf reads formatted data from a file; fread and fwrite read/write binary blocks with explicit byte counts.",
+        "fclose flushes buffered output and releases the file descriptor; every successful fopen needs a matching fclose on all paths.",
+        "stdin, stdout, and stderr are already-open FILE* streams; use fprintf(stderr, ...) for errors so normal output can be redirected cleanly.",
+        "The lab pattern is argc/argv path validation, fopen, loop with fgets, parse and validate each line, build a data structure, close the file, then free all allocated memory.",
+    ],
     "c_pointers_memory": [
         "A pointer stores an address; dereferencing follows the address to read or write the pointed value.",
         "Arrays and pointers are closely related, but arrays still have storage and size context you must track yourself.",
@@ -1579,6 +1663,25 @@ LESSON_EXPLANATIONS.update({
         "Static linking copies library code into the executable; dynamic linking loads shared libraries at runtime.",
         "Name resolution fails when declarations, definitions, or linker inputs disagree.",
         "Separate compilation keeps large C programs modular but requires accurate headers and build rules.",
+    ],
+    "c_function_pointers": [
+        "A function pointer stores the address of a function whose parameter and return types match the pointer type.",
+        "Declare one as return_type (*name)(param_types); the parentheses around *name are required.",
+        "Assign a function pointer with the function name, such as cmp = compare_ints; no call parentheses are used during assignment.",
+        "Call through the pointer with ptr(args) or (*ptr)(args); both forms are common C.",
+        "Use typedef to keep signatures readable, for example typedef int (*cmp_t)(const void *, const void *).",
+        "Arrays of function pointers are dispatch tables: pick behavior by index or enum instead of a long if/else chain.",
+        "Callbacks pass behavior into reusable algorithms; qsort(base, count, size, compare) is the standard library example.",
+        "Common bugs are missing declaration parentheses, mismatched signatures, storing a pointer to the wrong function type, and calling a NULL function pointer.",
+    ],
+    "c_bitwise_deep": [
+        "C bitwise work should usually use unsigned integer types such as uint32_t so shifts and overflow are predictable.",
+        "Bit fields can pack flags inside a struct, for example unsigned int active : 1, but exact layout is implementation-defined.",
+        "Masks let you set, clear, toggle, and test specific bits in permissions, status words, and hardware-style registers.",
+        "Hash functions use shifts and XOR to mix input bits so similar strings land in different buckets.",
+        "Right-shifting a signed negative integer is implementation-defined, so prefer unsigned values for portable bit algorithms.",
+        "Shifting by a negative count or by a count greater than or equal to the width of the type is undefined behavior.",
+        "Use fixed-width types from stdint.h when the number of bits matters.",
     ],
     "c_processes_memory": [
         "A process is a running program with its own virtual address space and OS-managed state.",
@@ -1625,12 +1728,30 @@ LESSON_EXPLANATIONS.update({
         "Best case, worst case, and average case describe different input scenarios for the same algorithm.",
         "Amortized analysis explains average cost over a sequence of operations, not random average case.",
     ],
+    "c_benchmarking": [
+        "clock_gettime(CLOCK_MONOTONIC, &ts) captures a high-resolution monotonic timestamp that is not affected by wall-clock changes.",
+        "struct timespec stores seconds in tv_sec and nanoseconds in tv_nsec.",
+        "Compute elapsed seconds as (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9.",
+        "Time only the code you mean to measure; printing inside the timed block can dominate the algorithm runtime.",
+        "Run multiple trials and compare medians or trends because OS scheduling, cache state, and background processes create noise.",
+        "Use the same input sizes, compiler flags, machine, and data-generation method when comparing algorithms.",
+        "Empirical timings should support your Big-O reasoning; they do not replace asymptotic analysis.",
+    ],
     "c_quadratic_sorts": [
         "Selection sort repeatedly selects the smallest remaining item and places it in final position.",
         "Insertion sort builds a sorted prefix and is efficient on nearly sorted data.",
         "Bubble sort repeatedly swaps adjacent inverted pairs; early exit stops when no swaps occur.",
         "Stable sorts preserve the relative order of equal keys.",
         "In-place algorithms use only small extra memory beyond the input array.",
+    ],
+    "c_random_testing": [
+        "srand(seed) initializes C's pseudo-random number generator; call it once near the start of main.",
+        "srand(time(NULL)) changes the sequence between runs, while srand(42) makes a test replayable.",
+        "rand() returns an integer from 0 through RAND_MAX; rand() % n gives a simple value in [0, n) but can be biased.",
+        "For sorting tests, generate sorted, reversed, random, duplicate-heavy, empty, and single-element arrays.",
+        "For graph tests, generate edge candidates and add an edge when a random value is below a chosen probability.",
+        "When a random test fails, print the seed, size, and case type so the same input can be reproduced.",
+        "Random tests find surprising cases, but they should sit beside deterministic boundary tests.",
     ],
     "c_nlogn_sorts_proofs": [
         "Merge sort divides the array, sorts halves, then merges into sorted order.",
@@ -1652,6 +1773,16 @@ LESSON_EXPLANATIONS.update({
         "Load factor measures how full the table is and guides resizing.",
         "Average lookup can be O(1), but poor hashing or high load can degrade to O(n).",
         "A C hash map must handle key ownership, equality, collision storage, and cleanup.",
+    ],
+    "c_hash_algorithms": [
+        "A good non-cryptographic hash spreads typical keys uniformly and is cheap enough to run on every lookup.",
+        "The avalanche effect means a small input change should flip many output bits, reducing clustered collisions.",
+        "djb2 starts at 5381 and updates with hash = hash * 33 + c; the multiply by 33 can be written as (hash << 5) + hash.",
+        "FNV-1a starts with an offset basis, XORs each byte into the hash, then multiplies by the FNV prime.",
+        "Jenkins one-at-a-time repeatedly adds bytes, shifts, and XORs, then performs final mix steps for stronger avalanche.",
+        "Compare algorithms on the same dataset and table size using total collisions, longest chain, average non-empty chain length, filled buckets, and load factor.",
+        "No simple hash is best for every dataset; choose based on key shape, table size, collision cost, and performance budget.",
+        "These functions are not cryptographic hashes; use a cryptographic library when collision resistance against attackers matters.",
     ],
     "c_graph_algorithms": [
         "Graphs can be represented as adjacency matrices or adjacency lists.",
@@ -1712,6 +1843,15 @@ LESSON_EXPLANATIONS.update({
         "Comprehensions build lists, dicts, and sets from compact loop/filter expressions, and generator expressions stay lazy.",
         "Shallow copies duplicate the outer container; deep copies recursively copy nested objects.",
     ],
+    "python_bitwise_deep": [
+        "Python supports &, |, ^, ~, <<, and >> on integers, just like lower-level languages.",
+        "Python integers grow as large as needed, so you do not naturally overflow at 32 or 64 bits.",
+        "Use masks with explicit widths when simulating C-style behavior, for example value & 0xffffffff.",
+        "Left shift multiplies by powers of two, and right shift performs arithmetic shift on signed integers.",
+        "Bit flags still work well in Python when you need compact option sets or LeetCode bit-manipulation practice.",
+        "bin(x), x.bit_count(), int.to_bytes, and int.from_bytes are useful helpers when inspecting or packing bits.",
+        "Parenthesize bit tests such as (flags & READ) != 0 for clarity even when Python precedence would allow shorter code.",
+    ],
     "python_text_processing": [
         "String methods such as split, join, strip, replace, and find solve many parsing tasks without regex.",
         "f-strings are the standard readable way to interpolate values into text.",
@@ -1762,6 +1902,42 @@ LESSON_EXPLANATIONS.update({
         "Mocks replace slow or external dependencies so tests stay focused and repeatable.",
         "Coverage helps reveal untested code paths but does not prove the assertions are meaningful.",
     ],
+    "python_test_automation": [
+        "Python is often used as a harness around compiled C programs because it can launch processes, capture output, and summarize results quickly.",
+        "subprocess.run([...], capture_output=True, text=True, timeout=5) returns a CompletedProcess with stdout, stderr, and returncode.",
+        "Always pass the command as a list of arguments, not one shell string, unless you specifically need shell behavior.",
+        "A timeout turns infinite loops or stuck programs into a reported TIMEOUT result instead of a hung test suite.",
+        "The harness pattern is: build argv, run the program, inspect returncode, parse stdout/stderr, compare expected output, record the result, and print a summary.",
+        "Use csv.writer or csv.DictWriter when the output should become a spreadsheet or graph.",
+        "Use difflib.unified_diff for helpful expected-vs-actual output when a program prints the wrong text.",
+    ],
+    "python_benchmarking": [
+        "timeit runs a small statement many times and reduces noise from setup overhead.",
+        "timeit.repeat gives multiple trials so you can compare the minimum, median, or spread.",
+        "time.perf_counter() is the right clock for elapsed wall time around larger blocks of code.",
+        "time.process_time() measures CPU time and excludes sleep or much I/O waiting.",
+        "Benchmark the computation separately from printing, file reading, random input generation, and plotting.",
+        "Python timings are noisier than C because interpreter overhead, garbage collection, and object allocation are part of the runtime.",
+        "Use timing data to compare growth curves, such as list-based Dijkstra versus heap-based Dijkstra as graph density changes.",
+    ],
+    "python_random_testing": [
+        "random.seed(42) makes generated cases deterministic, which is essential for replaying a failure.",
+        "random.randint(a, b) includes both endpoints; random.randrange(n) gives values in [0, n).",
+        "random.random() returns a float in [0.0, 1.0), useful for probability-based graph edge generation.",
+        "random.shuffle(list) permutes a list in place; random.sample draws unique items without replacement.",
+        "Generate cases by shape, not only size: empty, one item, sorted, reversed, random, duplicate-heavy, sparse graph, and dense graph.",
+        "Log the seed, parameters, and generated input when a random test fails.",
+        "Random tests are strongest when paired with assertions that verify invariants, such as 'the output is sorted' or 'all generated edges reference valid nodes'.",
+    ],
+    "python_graph_algorithms": [
+        "Python graph code usually represents an adjacency list as a dict mapping each node to neighbor nodes or (neighbor, weight) pairs.",
+        "Dijkstra's algorithm tracks the best-known distance to each node and repeatedly expands the unvisited node with smallest distance.",
+        "heapq implements a min-priority queue and makes the next-smallest-distance step efficient.",
+        "A list-based Dijkstra scan can be O(V^2); a heap-based implementation is closer to O((V + E) log V) for adjacency lists.",
+        "Graph density matters: dense graphs have many edges, so edge processing dominates; sparse graphs make priority-queue overhead more visible.",
+        "Use float('inf') for unknown distances and a previous-node map when the actual shortest path must be reconstructed.",
+        "Manual tracing and visualizers help confirm frontier updates before trusting runtime measurements.",
+    ],
     "python_ai_ml_readiness": [
         "NumPy arrays support vectorized numeric operations and broadcasting across shapes.",
         "Pandas Series and DataFrames make tabular cleaning, filtering, grouping, and CSV loading productive.",
@@ -1771,9 +1947,310 @@ LESSON_EXPLANATIONS.update({
     ],
 })
 
+DEEPENED_LESSON_CONTEXT = {
+    "variables": [
+        "When you read code, track each variable's current value and the line where that value last changed.",
+        "A useful variable name says what the value means in the problem, not only what type it has.",
+    ],
+    "types": [
+        "Types are also promises: a function that expects an int should not receive unparsed text, and a pointer should not receive a plain value.",
+        "When a value crosses a boundary such as input, file parsing, or function parameters, re-check the type assumption at that boundary.",
+    ],
+    "input": [
+        "Treat user input as untrusted: validate that it exists, has the expected shape, and can be converted before using it.",
+        "Separate reading input from processing it so the core logic can be tested without typing at the console.",
+    ],
+    "conditionals": [
+        "Order conditions from most specific to most general when only one branch should run.",
+        "Write the boundary values next to the condition, then test exactly those boundaries.",
+    ],
+    "loops": [
+        "Before writing a loop, name the loop invariant: what should be true before and after every pass.",
+        "Trace the first iteration, a middle iteration, and the final iteration to catch off-by-one mistakes.",
+    ],
+    "functions": [
+        "A strong function has one job, a small parameter list, and a return value or side effect that is easy to describe.",
+        "If a function mutates data, say who owns that data and whether callers can see the mutation.",
+    ],
+    "arrays": [
+        "Arrays are best when you need compact indexed storage and predictable traversal.",
+        "Always connect the loop bounds to the array length; hard-coded lengths become bugs when input size changes.",
+    ],
+    "strings": [
+        "Text processing is usually parsing: strip noise, split into meaningful parts, validate the parts, then convert types.",
+        "In C, remember that a string is a char array ending with '\\0'; forgetting room for that terminator causes memory bugs.",
+    ],
+    "hash_maps": [
+        "Hash maps trade ordering for fast access; choose them when the key is the natural way to find the value.",
+        "Reason about the key's equality rule first because the hash table is only correct when equal keys are treated consistently.",
+    ],
+    "stack": [
+        "Stacks are a control-flow data structure: they remember what must be finished later.",
+        "When debugging stack logic, write the stack contents after each push and pop.",
+    ],
+    "two_pointers": [
+        "The pointer movement rule is the algorithm: be able to explain why moving left or right cannot skip a valid answer.",
+        "Stop conditions matter; left < right is different from left <= right when the same element cannot be used twice.",
+    ],
+    "sliding_window": [
+        "A window solution depends on maintaining a summary, such as count, sum, or frequency map, as the endpoints move.",
+        "Ask whether the constraint is fixed-size or variable-size because that decides whether the left edge moves every step or only when invalid.",
+    ],
+    "binary_search": [
+        "Binary search is not only for arrays; it works on any answer space where the predicate changes one direction.",
+        "Use one consistent interval convention, such as closed [lo, hi] or half-open [lo, hi), and keep the update rules matched to it.",
+    ],
+    "classes": [
+        "Classes are strongest when they protect a small set of invariants behind methods.",
+        "Fields describe state; methods describe allowed state transitions.",
+    ],
+    "linked_lists": [
+        "Diagram each node as data plus next, and draw arrows before coding an insert or delete.",
+        "If you overwrite a next pointer before saving the rest of the list, the diagram shows the lost chain immediately.",
+        "Linked lists make local insert/delete cheap only after you already have the relevant node or previous node.",
+    ],
+    "recursion": [
+        "Write the base case first, then the smaller recursive call, then how the current frame combines that result.",
+        "A recursion trace is a stack trace: each call has its own parameters and locals.",
+    ],
+    "trees": [
+        "Draw tree nodes as values with left and right child links; omitted children are null leaves.",
+        "For DFS, draw the call stack beside the tree; for BFS, draw the queue contents at each level.",
+        "Visualization tools are useful because they make traversal order and frontier state visible.",
+    ],
+    "graphs": [
+        "Draw nodes as circles and edges as arrows or lines; write weights directly on weighted edges.",
+        "Adjacency lists are usually better for sparse graphs; adjacency matrices make edge lookup simple but cost O(V^2) space.",
+        "For BFS, number nodes by discovery order; for DFS, mark when the search backtracks; for Dijkstra, track frontier distances.",
+    ],
+    "dynamic_programming": [
+        "DP becomes manageable when you can say exactly what one table cell or memo entry means.",
+        "Pascal's triangle is a clear DP model: each interior value depends on the two values above it.",
+        "Counting operations alongside runtime helps connect the recurrence to empirical growth.",
+    ],
+    "heap": [
+        "A heap gives priority order, not full sorted order; only the root is guaranteed to be the next item.",
+        "Dijkstra uses a min-heap so the next expanded node is the currently cheapest frontier node.",
+    ],
+    "matrix": [
+        "Always name dimensions as rows first, columns second; grid[r][c] means row r, column c.",
+        "When matrices represent graphs, matrix[i][j] means the edge from i to j; zero often means no edge unless zero-weight edges are allowed.",
+    ],
+    "design": [
+        "Start design problems by listing operations, required complexity, and invariants.",
+        "A good design makes invalid states hard to create and easy to detect in tests.",
+    ],
+    "java_language_foundations": [
+        "Reading Java well means distinguishing primitive value copying from object reference copying.",
+        "Because Java is statically typed, many design errors are best caught by making method signatures precise.",
+    ],
+    "java_control_flow": [
+        "Use switch for fixed categories and if/else for ranges or conditions that are not mutually named cases.",
+        "When tracing Java loops, record the condition before the body because the final failed check is part of the loop behavior.",
+    ],
+    "java_methods_contracts": [
+        "A contract lets a caller use a method without reading its implementation.",
+        "Recursive Java methods need the same contract as iterative ones: valid inputs, result meaning, and failure behavior.",
+    ],
+    "java_classes_constructors": [
+        "Constructors should leave the object ready to use; do validation before storing invalid fields.",
+        "Use this.field when it improves clarity, especially when constructor parameters share field names.",
+    ],
+    "java_enums_exceptions": [
+        "Enums are better than raw strings for fixed states because the compiler catches misspellings.",
+        "Use exceptions for exceptional or invalid states, not as a substitute for normal branching.",
+    ],
+    "java_encapsulation_invariants": [
+        "Private fields are not enough by themselves; public methods must also preserve the invariant.",
+        "Immutable classes are often easier to test because state cannot change after construction.",
+    ],
+    "java_inheritance_polymorphism": [
+        "Inheritance should express substitutability: a subclass should be usable anywhere the superclass is expected.",
+        "If overriding requires many special cases, composition or Strategy may be the clearer design.",
+    ],
+    "java_abstract_interfaces": [
+        "Program to interfaces when callers only need behavior, not implementation details.",
+        "Use abstract classes when implementations truly share state or helper behavior.",
+    ],
+    "java_equality_hashing": [
+        "Equality bugs often surface only inside HashSet, HashMap, TreeSet, or sorting code.",
+        "If equals uses id, hashCode and compareTo should not silently use a different identity unless you can justify it.",
+    ],
+    "java_generics_hofs": [
+        "Generics move type errors from runtime casts to compile-time feedback.",
+        "Use lambdas when the behavior is small and local; name a method when the behavior needs explanation or reuse.",
+    ],
+    "java_recursive_lists": [
+        "Recursive list ADTs make the empty case explicit, which clarifies termination.",
+        "Separate the public list API from node internals so callers cannot break links directly.",
+    ],
+    "java_adts_collections": [
+        "Choose the interface by behavior first, then choose the implementation by performance needs.",
+        "Iterating while mutating a collection requires care; use iterators or collect changes separately.",
+    ],
+    "java_design_patterns": [
+        "A pattern should solve pressure already visible in the code, such as repeated branching or complicated construction.",
+        "Name the pattern only after you can explain what coupling it removes.",
+    ],
+    "java_mvc": [
+        "The model should be testable without a view and usable by more than one kind of interface.",
+        "Controllers are translation layers: input events become model operations, then model state becomes view output.",
+    ],
+    "java_testing_debug_docs": [
+        "A good test name states the condition and expected behavior.",
+        "Debugging is faster when you first predict the next value, then step and compare prediction to reality.",
+    ],
+    "java_big_o": [
+        "For Java collections, complexity depends on the concrete implementation, not only the interface.",
+        "Recursive complexity includes both the number of calls and the cost inside each call.",
+    ],
+    "java_uml": [
+        "A useful UML diagram omits method bodies and focuses on relationships a reader must understand.",
+        "Composition, aggregation, and dependency arrows should match real ownership and lifetime in the code.",
+    ],
+    "java_packages_builds": [
+        "Packages should follow responsibility boundaries, not random file grouping.",
+        "Build tools make dependency versions and test commands repeatable across machines.",
+    ],
+    "c_systems_linux": [
+        "Shell redirection and pipes are part of the testing surface for command-line C tools.",
+        "Makefiles matter once a lab has multiple .c files because they encode dependencies and flags consistently.",
+    ],
+    "c_foundations_headers": [
+        "Headers are contracts between files; keep definitions in .c files unless a constant or macro truly belongs in the interface.",
+        "Compiler warnings are teaching feedback, not noise; fix them before chasing runtime bugs.",
+    ],
+    "c_pointers_memory": [
+        "Draw stack variables and heap blocks separately; arrows should show which pointer owns or refers to each block.",
+        "For every malloc, write down the matching free location and which function is responsible for it.",
+    ],
+    "c_structs_types": [
+        "Struct layout turns related fields into one unit, which is essential for nodes, graph edges, table entries, and records.",
+        "Self-referential structs need a named struct tag because the type refers to itself before the typedef is complete.",
+    ],
+    "c_debug_assembly": [
+        "Godbolt Compiler Explorer lets you paste C and compare generated assembly across compilers and optimization levels.",
+        "Try x * 32 and x << 5 at different optimization levels; compilers often generate the same shift instruction.",
+        "Assembly inspection is most useful when tied to a question: why is this slower, where is this branch, or what did optimization remove?",
+    ],
+    "c_compilers_linkers": [
+        "A declaration tells the compiler a symbol exists; a definition gives the linker actual storage or code to connect.",
+        "Linker errors usually mean the build command or function definitions do not match the headers.",
+    ],
+    "c_processes_memory": [
+        "Stack frames explain why local variables disappear after return and why deep recursion can fail.",
+        "Cache locality explains why contiguous arrays can outperform pointer-heavy structures even with the same Big-O.",
+    ],
+    "c_concurrency_threads": [
+        "If two threads can touch the same mutable value, decide which lock or ownership rule protects it.",
+        "Race bugs are schedule-dependent, so passing once does not prove the code is safe.",
+    ],
+    "c_networking_sockets": [
+        "Sockets are file descriptors with protocol behavior; they still need close and error checks.",
+        "TCP sends a stream, not message objects, so code must handle partial reads and writes.",
+    ],
+    "c_linked_lists_deep": [
+        "For delete operations, keep track of both current and previous nodes so you can reconnect the chain.",
+        "Freeing a list requires saving next before freeing current; otherwise you lose the only path forward.",
+    ],
+    "c_stacks_queues": [
+        "Array stacks are simple and cache-friendly but fixed-capacity unless resized.",
+        "Circular queues avoid moving elements by wrapping front and back indexes with modulo arithmetic.",
+    ],
+    "c_algorithm_analysis_formal": [
+        "State what n represents before analyzing; n might be elements, vertices, edges, rows, or characters.",
+        "Separate theoretical growth from measured runtime because constants and hardware still affect small inputs.",
+    ],
+    "c_quadratic_sorts": [
+        "Sorting labs should trace the array after each outer pass so the invariant becomes visible.",
+        "An early-exit bubble sort changes the best case from quadratic work to linear checking.",
+    ],
+    "c_nlogn_sorts_proofs": [
+        "Merge sort uses extra temporary storage, so it is not in-place in the strict sense.",
+        "When translating pseudo-code merge sort, be explicit about inclusive bounds l, m, and r.",
+    ],
+    "c_trees_heaps": [
+        "When building a tree from file input, parse one line, validate it, insert it, then move to the next line.",
+        "Tree traversal output is easiest to verify by comparing preorder, inorder, and postorder on a small known tree.",
+    ],
+    "c_hash_tables": [
+        "Collision metrics such as longest chain and filled-bucket percentage reveal more than total collision count alone.",
+        "Load factor has to be interpreted with the collision strategy; chaining and open addressing degrade differently.",
+    ],
+    "c_graph_algorithms": [
+        "Converting an adjacency list to a matrix means visiting each stored edge and writing matrix[src][dst] = weight.",
+        "Converting a matrix to a list means scanning every cell and adding an edge for each nonzero or present value.",
+        "Dense graphs push you toward matrices; sparse graphs usually favor adjacency lists.",
+    ],
+    "c_greedy": [
+        "A greedy algorithm needs a proof or counterexample search, not only a plausible local rule.",
+        "When a greedy idea fails, the failure case often points to a DP state you were missing.",
+    ],
+    "c_dynamic_programming_deep": [
+        "For Pascal's triangle, a 2D table makes dependencies visible: table[n][k] depends on table[n-1][k-1] and table[n-1][k].",
+        "Memoized recursion and bottom-up tabulation can compute the same values in different orders.",
+    ],
+    "c_recursion_divide_conquer": [
+        "Divide-and-conquer should shrink the input each call and combine results only after subproblems are solved.",
+        "Trace recursion with parameters, not only return values, because wrong bounds cause most C recursion bugs.",
+    ],
+    "python_environment": [
+        "Use the REPL for quick experiments, but put repeatable work in scripts so it can be rerun and tested.",
+        "Python's dynamic typing gives speed while writing; type hints give readers and tools the missing intent.",
+    ],
+    "python_control_flow_deep": [
+        "Python indentation is syntax, so formatting changes program behavior.",
+        "A loop over a file, dictionary, or generator consumes values lazily, which can be useful for large inputs.",
+    ],
+    "python_functions_scope": [
+        "Default arguments are evaluated once at function definition time, so avoid mutable defaults like [].",
+        "Closures and lambdas are powerful, but named functions are clearer when behavior is reused or tested.",
+    ],
+    "python_builtin_data_structures": [
+        "Python containers are references to objects; copying a list does not automatically deep-copy nested values.",
+        "Choose dictionaries for lookup, sets for uniqueness, lists for order, and tuples for fixed records.",
+    ],
+    "python_text_processing": [
+        "Prefer simple string methods before regex when the delimiter or transformation is straightforward.",
+        "Always specify encoding when reading course data or generated files that may move across machines.",
+    ],
+    "python_file_io_data": [
+        "Use newline='' with csv files so the csv module handles line endings correctly.",
+        "argparse makes scripts usable by other people because it documents inputs and validates options.",
+    ],
+    "python_error_handling": [
+        "Catch the narrowest exception you can handle; broad except blocks hide real bugs.",
+        "Use exception messages that include the bad value or context needed to diagnose the failure.",
+    ],
+    "python_oop_deep": [
+        "Dataclasses are excellent for data-focused classes, but behavior-heavy objects still need clear methods and invariants.",
+        "Dunder methods let your objects participate naturally in printing, comparison, hashing, and containers.",
+    ],
+    "python_iterators_generators_decorators": [
+        "Generators are ideal when you can produce values one at a time instead of storing an entire result list.",
+        "Decorators should preserve metadata with functools.wraps so debugging and docs still show the original function name.",
+    ],
+    "python_modules_packages_envs": [
+        "A main guard keeps importable code from running side effects during tests.",
+        "Virtual environments make dependency problems local to one project instead of system-wide.",
+    ],
+    "python_testing": [
+        "Parametrized tests turn a table of examples into one readable test body.",
+        "For lab harnesses, tests should report the command run, stdout, stderr, return code, and timeout status.",
+    ],
+    "python_ai_ml_readiness": [
+        "Notebook exploration should produce reusable functions once the workflow stabilizes.",
+        "Plots are not just decoration; they reveal outliers, scaling curves, and data quality problems.",
+    ],
+}
+
+for _topic, _extra_points in DEEPENED_LESSON_CONTEXT.items():
+    LESSON_EXPLANATIONS.setdefault(_topic, []).extend(_extra_points)
+
 
 PRACTICE_TASKS.update({
     "java_language_foundations": "Write a Java class that declares one primitive, one final constant, one StringBuilder, one array, and one safe widening cast. Print each result.",
+    "java_bitwise_deep": "Write a Java program with READ, WRITE, and EXEC bit flags. Combine flags, test one flag with &, clear one flag with ~, and print the results.",
     "java_control_flow": "Write a Java method that takes an int score and returns a letter grade using if/else or switch. Add a loop that prints a state table for scores 0, 25, 50, 75, 100.",
     "java_methods_contracts": "Write a Java method with a purpose comment, precondition, postcondition, parameters, return value, and one recursive helper.",
     "java_classes_constructors": "Create a BankAccount class with private balance, overloaded constructors, deposit, withdraw, and toString. Use this where field and parameter names match.",
@@ -1788,25 +2265,34 @@ PRACTICE_TASKS.update({
     "java_design_patterns": "Implement Strategy for two discount rules, then briefly identify where Factory or Decorator would fit in the same program.",
     "java_mvc": "Split a tiny counter app into CounterModel, CounterView, and CounterController classes with no printing inside the model.",
     "java_testing_debug_docs": "Write a JUnit-style test plan for BankAccount: normal deposit, overdraft boundary, negative input, and toString output. Include one Javadoc comment.",
+    "java_random_testing": "Generate a reproducible random int array with new Random(42), sort a copy, and print whether the sorted copy is nondecreasing.",
+    "java_benchmarking": "Use System.nanoTime to time sorting arrays of at least two sizes. Warm up once, then print elapsed milliseconds for each size.",
     "java_big_o": "For three Java snippets you write (single loop, nested loop, binary search), add comments with time and space complexity.",
     "java_uml": "Write a text UML sketch for a Library system with Book, Member, Loan, and LoanRepository. Include visibility and relationships.",
     "java_packages_builds": "Sketch a Java project layout with packages model, view, controller, and test. Include one import and one Gradle dependency line.",
     "c_systems_linux": "Write the shell commands to create hello.c, compile it with gcc -Wall -Wextra -g -o hello hello.c, run it, and redirect output to out.txt.",
     "c_foundations_headers": "Create a tiny two-file C program: math_utils.h declares add(), math_utils.c defines it, and main.c calls it with printf.",
+    "c_command_line_args": "Write a C program that requires one filename argument, prints usage to stderr if it is missing, and prints argv[0] and argv[1] when present.",
+    "c_file_io": "Write a C program that opens the filename from argv[1], reads it line by line with fgets, counts the lines, closes the file, and prints the count.",
     "c_pointers_memory": "Write a C function increment(int *p), allocate an int with malloc, call increment, print the value, then free it.",
     "c_structs_types": "Define a typedef struct Student with name and id, allocate one Student, fill fields, print it, and free it.",
     "c_debug_assembly": "Write a short C loop and list the gdb commands to break at main, step, print the loop variable, and inspect the backtrace.",
     "c_compilers_linkers": "Write commands that compile main.c and util.c into .o files, link them into app, then explain which step resolves symbols.",
+    "c_function_pointers": "Create two small int functions, store them in an array of function pointers, call one by index, and print the result.",
+    "c_bitwise_deep": "Write C functions set_bit, clear_bit, toggle_bit, and test_bit for a uint32_t value. Demonstrate each with printf.",
     "c_processes_memory": "Draw or write a labeled memory map for one C program showing text, data, BSS, heap, stack, and one variable in each where possible.",
     "c_concurrency_threads": "Write a pthread counter example guarded by a mutex. Include the race that would occur if the lock were removed.",
     "c_networking_sockets": "Sketch the server-side socket call order: socket, bind, listen, accept, recv, send, close. Add one line describing the client connect path.",
     "c_linked_lists_deep": "Implement insert_head, search, delete_value, print_list, and free_list for a singly linked list of ints.",
     "c_stacks_queues": "Implement either an array stack with capacity checks or a circular-array queue with wraparound indexes.",
     "c_algorithm_analysis_formal": "Analyze one nested loop and one recurrence. State Big-O, Big-Omega, Big-Theta, and the reasoning.",
+    "c_benchmarking": "Use clock_gettime(CLOCK_MONOTONIC) to time a loop or sort function across at least three input sizes, then print a timing table.",
     "c_quadratic_sorts": "Implement insertion sort in C and add comments tracing how the sorted prefix grows on [5, 2, 4, 1].",
+    "c_random_testing": "Generate a random array using srand with a fixed seed, sort it, verify it is sorted, and print the seed plus pass/fail.",
     "c_nlogn_sorts_proofs": "Implement merge sort or quicksort in C and write a loop invariant for the merge or partition step.",
     "c_trees_heaps": "Implement BST search and insert, then describe how a min-heap would store the same values in an array.",
     "c_hash_tables": "Build a small chained hash table for string keys with insert and search. Track load factor after each insert.",
+    "c_hash_algorithms": "Implement djb2 and FNV-1a for strings, hash the same list of words into a fixed table size, and print collision counts.",
     "c_graph_algorithms": "Represent a graph with adjacency lists and implement BFS that prints distance from a start node.",
     "c_greedy": "Implement activity selection after sorting intervals by finish time. Add one counterexample where a different greedy rule fails.",
     "c_dynamic_programming_deep": "Implement bottom-up coin change or LCS in C. Name the state, recurrence, base cases, and table order.",
@@ -1815,6 +2301,7 @@ PRACTICE_TASKS.update({
     "python_control_flow_deep": "Write a Python program that uses if/elif/else, for/range, while, break, continue, pass, and match-case on a simple command string.",
     "python_functions_scope": "Write a function summarize(*nums, scale=1, **labels), use a lambda as sorted(key=...), and add type hints.",
     "python_builtin_data_structures": "Use a list comprehension, dict comprehension, set operation, tuple unpacking, and a shallow-copy example in one short script.",
+    "python_bitwise_deep": "Write Python helpers to set, clear, toggle, and test a flag bit. Demonstrate them with READ, WRITE, and EXEC flags.",
     "python_text_processing": "Parse a comma-separated sentence using split/strip, rebuild it with join, then use re.findall to extract numbers.",
     "python_file_io_data": "Read a CSV file, convert rows to dictionaries, write JSON output, and add argparse for input/output paths.",
     "python_error_handling": "Write a safe_int function that catches ValueError, raises a custom InvalidAgeError for negative values, and uses finally for cleanup text.",
@@ -1822,12 +2309,17 @@ PRACTICE_TASKS.update({
     "python_iterators_generators_decorators": "Write a countdown generator, a timing/logging decorator with functools.wraps, and a context manager using contextlib.",
     "python_modules_packages_envs": "Sketch a package layout with __init__.py, a main guard, requirements.txt, and commands to create/activate a venv.",
     "python_testing": "Write pytest tests with one fixture, one parametrize case, and one mock for a function that calls an external API.",
+    "python_test_automation": "Write a Python harness that runs a compiled program with subprocess.run, captures stdout/stderr, enforces a timeout, and records pass/fail rows.",
+    "python_benchmarking": "Use timeit.repeat or perf_counter to compare two functions over increasing input sizes, then print a small timing table.",
+    "python_random_testing": "Generate reproducible random arrays and graphs with random.seed(42), then assert basic invariants such as sorted output or valid edge endpoints.",
+    "python_graph_algorithms": "Implement heapq-based Dijkstra for a weighted adjacency dict and compare it against a list-scan version on sparse and dense random graphs.",
     "python_ai_ml_readiness": "Load a CSV into Pandas, compute one groupby summary, convert one column to a NumPy array, and plot a simple chart.",
 })
 
 
 QUIZ_BY_TOPIC.update({
     "java_language_foundations": ("What Java keyword marks a variable as a constant after assignment?", ["final"]),
+    "java_bitwise_deep": ("Which Java right-shift operator fills with zero bits?", [">>>", "unsigned right shift"]),
     "java_control_flow": ("What loop form always runs its body at least once?", ["do while", "do-while"]),
     "java_methods_contracts": ("What does void mean in a Java method signature?", ["no return value", "returns nothing"]),
     "java_classes_constructors": ("What keyword refers to the current Java object?", ["this"]),
@@ -1842,25 +2334,34 @@ QUIZ_BY_TOPIC.update({
     "java_design_patterns": ("Which pattern swaps interchangeable algorithms behind one interface?", ["strategy"]),
     "java_mvc": ("In MVC, which part owns domain state and rules?", ["model"]),
     "java_testing_debug_docs": ("What Java testing framework commonly uses @Test?", ["junit"]),
+    "java_random_testing": ("Why use a fixed random seed in tests?", ["reproducible", "replay", "deterministic"]),
+    "java_benchmarking": ("Which Java method should you use for elapsed benchmark timing?", ["nanoTime", "system.nanotime"]),
     "java_big_o": ("What complexity class describes binary search?", ["o log n", "log n", "O(log n)"]),
     "java_uml": ("In UML, what relationship represents a strong whole-part ownership?", ["composition"]),
     "java_packages_builds": ("What Java declaration groups a class into a namespace?", ["package"]),
     "c_systems_linux": ("What gcc flag includes debug symbols for gdb?", ["-g", "g"]),
     "c_foundations_headers": ("What file type usually declares C function prototypes?", ["header", ".h", "h file"]),
+    "c_command_line_args": ("Which argv index holds the first user-supplied argument?", ["argv[1]", "1"]),
+    "c_file_io": ("What does fopen return on failure?", ["null", "NULL"]),
     "c_pointers_memory": ("What C function releases heap memory?", ["free"]),
     "c_structs_types": ("What C keyword groups fields into a custom record?", ["struct"]),
     "c_debug_assembly": ("What debugger is commonly used for C programs on Linux?", ["gdb"]),
     "c_compilers_linkers": ("What build stage resolves symbols across object files?", ["linking", "linker"]),
+    "c_function_pointers": ("What C standard library sort function takes a compare callback?", ["qsort"]),
+    "c_bitwise_deep": ("What unsigned fixed-width header provides uint32_t?", ["stdint.h", "stdint"]),
     "c_processes_memory": ("Which memory region grows and shrinks as functions call and return?", ["stack"]),
     "c_concurrency_threads": ("What pthread primitive protects a critical section?", ["mutex", "pthread_mutex"]),
     "c_networking_sockets": ("Which server socket call waits for an incoming client connection?", ["accept"]),
     "c_linked_lists_deep": ("What must you do to every heap-allocated linked-list node when done?", ["free it", "free", "deallocate"]),
     "c_stacks_queues": ("Which ADT removes the oldest inserted item first?", ["queue"]),
     "c_algorithm_analysis_formal": ("What notation gives a tight asymptotic bound?", ["theta", "big theta", "Big-Theta"]),
+    "c_benchmarking": ("Which clock should C benchmarks use to avoid wall-clock adjustments?", ["clock_monotonic", "CLOCK_MONOTONIC"]),
     "c_quadratic_sorts": ("Which quadratic sort is often efficient on nearly sorted data?", ["insertion sort"]),
+    "c_random_testing": ("Why print the seed when a random test fails?", ["replay", "reproduce", "reproducible"]),
     "c_nlogn_sorts_proofs": ("What proof tool states what remains true each loop iteration?", ["loop invariant", "invariant"]),
     "c_trees_heaps": ("What BST invariant compares values in the left subtree to the node?", ["left less than node", "left < node", "smaller"]),
     "c_hash_tables": ("What hash-table metric usually triggers resizing?", ["load factor"]),
+    "c_hash_algorithms": ("What hash property means small input changes affect many output bits?", ["avalanche", "avalanche effect"]),
     "c_graph_algorithms": ("Which graph algorithm finds shortest paths in unweighted graphs?", ["bfs", "breadth first search"]),
     "c_greedy": ("What property justifies making a locally optimal choice?", ["greedy choice property"]),
     "c_dynamic_programming_deep": ("What DP approach fills a table from base cases upward?", ["tabulation", "bottom up", "bottom-up"]),
@@ -1869,6 +2370,7 @@ QUIZ_BY_TOPIC.update({
     "python_control_flow_deep": ("What Python statement is an explicit no-op placeholder?", ["pass"]),
     "python_functions_scope": ("What acronym describes Python name lookup order?", ["legb"]),
     "python_builtin_data_structures": ("Which Python built-in stores unique items?", ["set"]),
+    "python_bitwise_deep": ("What Python integer method counts set bits?", ["bit_count", "bit count"]),
     "python_text_processing": ("What Python module provides regular expressions?", ["re"]),
     "python_file_io_data": ("What statement should you use so files close automatically?", ["with", "context manager"]),
     "python_error_handling": ("What keyword intentionally raises an exception?", ["raise"]),
@@ -1876,12 +2378,38 @@ QUIZ_BY_TOPIC.update({
     "python_iterators_generators_decorators": ("What keyword makes a generator function produce values lazily?", ["yield"]),
     "python_modules_packages_envs": ("What file commonly records Python package dependencies?", ["requirements.txt", "requirements"]),
     "python_testing": ("What pytest feature supplies reusable test setup?", ["fixture", "fixtures"]),
+    "python_test_automation": ("What subprocess.run argument prevents a hung program from blocking forever?", ["timeout"]),
+    "python_benchmarking": ("What Python module is designed for repeatable microbenchmarks?", ["timeit"]),
+    "python_random_testing": ("What random module function makes generated tests reproducible?", ["seed", "random.seed"]),
+    "python_graph_algorithms": ("What Python module provides a min-heap priority queue?", ["heapq"]),
     "python_ai_ml_readiness": ("What Pandas object represents a table of rows and columns?", ["dataframe", "data frame"]),
 })
 
 
 AUDIT_EXAMPLE_SNIPPETS = {
     "java": {
+        "bitwise": _clean_snippet("""
+            public class Main {
+                public static void main(String[] args) {
+                    int READ = 4, WRITE = 2, EXEC = 1;
+                    int flags = READ | WRITE;             // combine flags
+                    System.out.println((flags & WRITE) != 0);
+                    flags ^= EXEC;                        // toggle execute
+                    System.out.println(flags);
+                }
+            }
+        """),
+        "pseudocode": _clean_snippet("""
+            public class Main {
+                public static void main(String[] args) {
+                    int total = 0;
+                    for (int i = 1; i <= 5; i++) {       // pseudo-code "1 to 5"
+                        total += i;
+                    }
+                    System.out.println(total);            // 15
+                }
+            }
+        """),
         "java_language_foundations": _clean_snippet("""
             import java.util.*;
             public class Main {
@@ -1894,6 +2422,14 @@ AUDIT_EXAMPLE_SNIPPETS = {
                     System.out.println(sb.append("/ML") + " " + widened + " " + scores[MAX - 1]);
                 }
             }
+        """),
+        "java_bitwise_deep": _clean_snippet("""
+            final int READ = 1 << 2, WRITE = 1 << 1, EXEC = 1;
+            int flags = READ | WRITE;
+            boolean canWrite = (flags & WRITE) != 0;
+            flags &= ~READ;                         // clear READ
+            int logical = flags >>> 1;              // zero-fill right shift
+            System.out.println(canWrite + " " + flags + " " + logical);
         """),
         "java_control_flow": _clean_snippet("""
             int score = 82;
@@ -2018,6 +2554,23 @@ AUDIT_EXAMPLE_SNIPPETS = {
                 }
             }
         """),
+        "java_random_testing": _clean_snippet("""
+            Random random = new Random(42);
+            int[] values = new int[10];
+            for (int i = 0; i < values.length; i++) {
+                values[i] = random.nextInt(100);
+            }
+            Arrays.sort(values);
+            System.out.println(Arrays.toString(values));
+        """),
+        "java_benchmarking": _clean_snippet("""
+            int[] values = {5, 3, 1, 4, 2};
+            long start = System.nanoTime();
+            Arrays.sort(values);
+            long end = System.nanoTime();
+            double ms = (end - start) / 1_000_000.0;
+            System.out.println(ms);
+        """),
         "java_big_o": _clean_snippet("""
             // O(log n) time, O(1) extra space.
             static boolean binarySearch(int[] a, int target) {
@@ -2046,6 +2599,28 @@ AUDIT_EXAMPLE_SNIPPETS = {
         """),
     },
     "c": {
+        "bitwise": _clean_snippet("""
+            #include <stdio.h>
+            int main(void) {
+                unsigned READ = 4, WRITE = 2, EXEC = 1;
+                unsigned flags = READ | WRITE;      /* combine */
+                printf("%d\\n", (flags & WRITE) != 0);
+                flags ^= EXEC;                      /* toggle */
+                printf("%u\\n", flags);
+                return 0;
+            }
+        """),
+        "pseudocode": _clean_snippet("""
+            #include <stdio.h>
+            int main(void) {
+                int total = 0;
+                for (int i = 1; i <= 5; i++) {      /* pseudo-code "1 to 5" */
+                    total += i;
+                }
+                printf("%d\\n", total);             /* 15 */
+                return 0;
+            }
+        """),
         "c_systems_linux": _clean_snippet("""
             $ cat > hello.c
             #include <stdio.h>
@@ -2060,6 +2635,27 @@ AUDIT_EXAMPLE_SNIPPETS = {
             int add(int a, int b);
             #endif
             /* main.c calls add(2, 3) and prints with printf("%d\\n", result). */
+        """),
+        "c_command_line_args": _clean_snippet("""
+            int main(int argc, char **argv) {
+                if (argc < 2) {
+                    fprintf(stderr, "usage: %s <file>\\n", argv[0]);
+                    return 1;
+                }
+                printf("program=%s file=%s\\n", argv[0], argv[1]);
+                return 0;
+            }
+        """),
+        "c_file_io": _clean_snippet("""
+            FILE *fp = fopen(argv[1], "r");
+            if (!fp) { perror(argv[1]); return 1; }
+            char line[256];
+            int lines = 0;
+            while (fgets(line, sizeof line, fp) != NULL) {
+                lines++;
+            }
+            fclose(fp);
+            printf("%d\\n", lines);
         """),
         "c_pointers_memory": _clean_snippet("""
             void increment(int *p) { (*p)++; }
@@ -2091,6 +2687,20 @@ AUDIT_EXAMPLE_SNIPPETS = {
             $ gcc -S main.i -o main.s      # compile to assembly
             $ gcc -c main.s -o main.o      # assemble
             $ gcc main.o util.o -o app     # link symbols into executable
+        """),
+        "c_function_pointers": _clean_snippet("""
+            int add(int a, int b) { return a + b; }
+            int mul(int a, int b) { return a * b; }
+            typedef int (*op_t)(int, int);
+            op_t ops[] = {add, mul};
+            printf("%d\\n", ops[1](6, 7));  /* 42 */
+        """),
+        "c_bitwise_deep": _clean_snippet("""
+            #include <stdint.h>
+            uint32_t set_bit(uint32_t x, unsigned bit) { return x | (1u << bit); }
+            uint32_t clear_bit(uint32_t x, unsigned bit) { return x & ~(1u << bit); }
+            int test_bit(uint32_t x, unsigned bit) { return (x & (1u << bit)) != 0; }
+            printf("%d\\n", test_bit(set_bit(0, 3), 3));
         """),
         "c_processes_memory": _clean_snippet("""
             int global_count;              /* BSS */
@@ -2137,9 +2747,18 @@ AUDIT_EXAMPLE_SNIPPETS = {
         """),
         "c_algorithm_analysis_formal": _clean_snippet("""
             for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
+            for (int j = 0; j < n; j++)
                     work();
             /* n*n calls, so time is O(n^2), Omega(n^2), and Theta(n^2). */
+        """),
+        "c_benchmarking": _clean_snippet("""
+            struct timespec start, end;
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            run_algorithm();
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            double seconds = (end.tv_sec - start.tv_sec)
+                + (end.tv_nsec - start.tv_nsec) / 1e9;
+            printf("%f\\n", seconds);
         """),
         "c_quadratic_sorts": _clean_snippet("""
             for (int i = 1; i < n; i++) {
@@ -2147,6 +2766,14 @@ AUDIT_EXAMPLE_SNIPPETS = {
                 while (j >= 0 && a[j] > x) { a[j + 1] = a[j]; j--; }
                 a[j + 1] = x;             /* insertion sort */
             }
+        """),
+        "c_random_testing": _clean_snippet("""
+            srand(42);                     /* fixed seed for replay */
+            int values[8];
+            for (int i = 0; i < 8; i++) {
+                values[i] = rand() % 100;
+            }
+            printf("seed=42 first=%d\\n", values[0]);
         """),
         "c_nlogn_sorts_proofs": _clean_snippet("""
             int partition(int a[], int lo, int hi) {
@@ -2172,6 +2799,15 @@ AUDIT_EXAMPLE_SNIPPETS = {
                 return h;
             }
             /* bucket = hash(key) % capacity; collisions go in a linked list. */
+        """),
+        "c_hash_algorithms": _clean_snippet("""
+            uint32_t djb2(const char *s) {
+                uint32_t hash = 5381u;
+                while (*s) {
+                    hash = ((hash << 5) + hash) + (unsigned char)*s++;
+                }
+                return hash;
+            }
         """),
         "c_graph_algorithms": _clean_snippet("""
             int graph[4][4] = {{0,1,1,0},{0,0,0,1},{0,0,0,1},{0,0,0,0}};
@@ -2202,6 +2838,19 @@ AUDIT_EXAMPLE_SNIPPETS = {
         """),
     },
     "python": {
+        "bitwise": _clean_snippet("""
+            READ, WRITE, EXEC = 4, 2, 1
+            flags = READ | WRITE            # combine flags
+            print((flags & WRITE) != 0)     # test a flag
+            flags ^= EXEC                   # toggle execute
+            print(flags)
+        """),
+        "pseudocode": _clean_snippet("""
+            total = 0
+            for i in range(1, 6):           # pseudo-code "1 to 5" is inclusive
+                total += i
+            print(total)                    # 15
+        """),
         "python_environment": _clean_snippet("""
             \"\"\"Small script demonstrating Python basics.\"\"\"
             n = 7
@@ -2234,6 +2883,13 @@ AUDIT_EXAMPLE_SNIPPETS = {
             evens = {n for n in squares if n % 2 == 0}
             first, *rest = squares
             shallow = [rest, evens].copy()
+        """),
+        "python_bitwise_deep": _clean_snippet("""
+            READ, WRITE, EXEC = 1 << 2, 1 << 1, 1
+            flags = READ | WRITE
+            can_write = (flags & WRITE) != 0
+            flags &= ~READ                  # clear READ
+            print(can_write, flags, bin(flags))
         """),
         "python_text_processing": _clean_snippet("""
             import re
@@ -2301,6 +2957,42 @@ AUDIT_EXAMPLE_SNIPPETS = {
             @pytest.fixture
             def sample_user():
                 return {"name": "Ryu"}
+        """),
+        "python_test_automation": _clean_snippet("""
+            import subprocess
+            result = subprocess.run(
+                ["./pascal", "10"], capture_output=True, text=True, timeout=5
+            )
+            passed = result.returncode == 0 and "252" in result.stdout
+            print("PASS" if passed else "FAIL", result.stderr)
+        """),
+        "python_benchmarking": _clean_snippet("""
+            import timeit
+            elapsed = timeit.repeat(
+                "sum(range(1000))", repeat=5, number=1000
+            )
+            print(min(elapsed))
+        """),
+        "python_random_testing": _clean_snippet("""
+            import random
+            random.seed(42)
+            values = [random.randint(0, 100) for _ in range(10)]
+            sorted_values = sorted(values)
+            print(values, sorted_values == sorted(sorted_values))
+        """),
+        "python_graph_algorithms": _clean_snippet("""
+            import heapq
+            graph = {"A": [("B", 1), ("C", 4)], "B": [("C", 2)], "C": []}
+            dist = {"A": 0}
+            heap = [(0, "A")]
+            while heap:
+                d, node = heapq.heappop(heap)
+                for neighbor, weight in graph[node]:
+                    nd = d + weight
+                    if nd < dist.get(neighbor, float("inf")):
+                        dist[neighbor] = nd
+                        heapq.heappush(heap, (nd, neighbor))
+            print(dist["C"])
         """),
         "python_ai_ml_readiness": _clean_snippet("""
             import numpy as np
@@ -4457,9 +5149,14 @@ def _mark_topic_complete(language: str, topic: str, progress: dict) -> None:
 
     lc_progress = load_leetcode_progress()
     lc_topics = lc_progress.setdefault("completed_topics", {}).setdefault(language, [])
-    mapped = topic
-    if topic == "hash_maps":
-        mapped = "arrays_hashing"
+    topic_aliases = {
+        "hash_maps": "arrays_hashing",
+        "bitwise": "bit_manipulation",
+        "c_bitwise_deep": "bit_manipulation",
+        "java_bitwise_deep": "bit_manipulation",
+        "python_bitwise_deep": "bit_manipulation",
+    }
+    mapped = topic_aliases.get(topic, topic)
     catalog_topics = set(load_leetcode_catalog().get("topics", []))
     if mapped in catalog_topics and mapped not in lc_topics:
         lc_topics.append(mapped)
@@ -5140,6 +5837,74 @@ def _programming_hard_review(view: dict, code: str) -> tuple[bool | None, str]:
         "strings": (
             [r"[\"']hello[\"']", r"\b(?:len|length|strlen)\b", r"(?:\[0\]|charAt\s*\(\s*0\s*\))", *_output_patterns(language)],
             "Hard checks passed: found length and first-character handling.",
+        ),
+        "bitwise": (
+            [r"(?:&|\||\^|<<|>>|~)", r"(?:READ|WRITE|EXEC|flag|mask)", *_output_patterns(language)],
+            "Hard checks passed: found bitwise operators, flags or masks, and output.",
+        ),
+        "pseudocode": (
+            [r"\b(?:for|while)\b", r"(?:1\s*;\s*.*<=\s*5|range\s*\(\s*1\s*,\s*6\s*\)|1\s+to\s+5)", r"(?:total|sum)", *_output_patterns(language)],
+            "Hard checks passed: found translated pseudo-code loop, accumulator, and output.",
+        ),
+        "java_bitwise_deep": (
+            [r"(?:&|\||\^|<<|>>|>>>|~)", r"(?:READ|WRITE|EXEC|flag|mask)", r"System\.out\.print"],
+            "Hard checks passed: found Java bitwise operations, flags or masks, and output.",
+        ),
+        "java_random_testing": (
+            [r"\b(?:Random|ThreadLocalRandom)\b", r"(?:42|seed)", r"\b(?:nextInt|nextDouble|shuffle)\b", r"System\.out\.print"],
+            "Hard checks passed: found Java random generation, reproducibility, and output.",
+        ),
+        "java_benchmarking": (
+            [r"System\.nanoTime\s*\(", r"(?:end\s*-|elapsed|duration|ms)", r"System\.out\.print"],
+            "Hard checks passed: found Java nanoTime timing and output.",
+        ),
+        "c_command_line_args": (
+            [r"\bargc\b", r"\bargv\b", r"(?:usage|fprintf\s*\(\s*stderr|printf)", r"\breturn\s+1\b|\bexit\s*\("],
+            "Hard checks passed: found argc/argv validation and usage/error handling.",
+        ),
+        "c_file_io": (
+            [r"\bfopen\s*\(", r"\bfgets\s*\(", r"\bfclose\s*\(", r"(?:NULL|!\s*\w+)"],
+            "Hard checks passed: found fopen, fgets, fclose, and failure handling.",
+        ),
+        "c_function_pointers": (
+            [r"\(\s*\*\s*\w+\s*\)|typedef\s+.*\(\s*\*", r"\[[^\]]*\]\s*=", r"\w+\s*\[[^\]]+\]\s*\("],
+            "Hard checks passed: found function pointer declaration, dispatch array, and call.",
+        ),
+        "c_bitwise_deep": (
+            [r"\b(?:uint32_t|unsigned)\b", r"(?:&|\||\^|<<|>>|~)", r"\bprintf\s*\("],
+            "Hard checks passed: found unsigned bitwise operations and output.",
+        ),
+        "c_benchmarking": (
+            [r"\bstruct\s+timespec\b", r"\bclock_gettime\s*\(", r"\bCLOCK_MONOTONIC\b", r"\bprintf\s*\("],
+            "Hard checks passed: found clock_gettime timing and output.",
+        ),
+        "c_random_testing": (
+            [r"\bsrand\s*\(", r"\brand\s*\(", r"(?:42|seed|time\s*\()", r"\bprintf\s*\("],
+            "Hard checks passed: found C random generation, seeding, and output.",
+        ),
+        "c_hash_algorithms": (
+            [r"\b(?:djb2|fnv|jenkins)\b", r"(?:<<|\^|\*)", r"\b(?:collision|collisions|printf)\b"],
+            "Hard checks passed: found named hash algorithm logic and collision/output reporting.",
+        ),
+        "python_bitwise_deep": (
+            [r"(?:&|\||\^|<<|>>|~)", r"(?:READ|WRITE|EXEC|flag|mask)", r"\bprint\s*\("],
+            "Hard checks passed: found Python bitwise operations, flags or masks, and output.",
+        ),
+        "python_test_automation": (
+            [r"\bsubprocess\.run\s*\(", r"\btimeout\s*=", r"\b(?:stdout|stderr|returncode)\b", r"\b(?:print|csv\.writer|DictWriter)\b"],
+            "Hard checks passed: found subprocess automation, timeout, result inspection, and reporting.",
+        ),
+        "python_benchmarking": (
+            [r"\b(?:timeit|perf_counter|process_time)\b", r"\b(?:repeat|timeit|start|elapsed)\b", r"\bprint\s*\("],
+            "Hard checks passed: found Python timing API and output.",
+        ),
+        "python_random_testing": (
+            [r"\brandom\.seed\s*\(", r"\brandom\.(?:randint|randrange|random|shuffle|sample|choices)\b", r"\b(?:assert|print)\b"],
+            "Hard checks passed: found reproducible random generation and verification.",
+        ),
+        "python_graph_algorithms": (
+            [r"\bheapq\b", r"\b(?:heappush|heappop)\b", r"\b(?:dist|distance|float\s*\(\s*[\"']inf)", r"\bprint\s*\("],
+            "Hard checks passed: found heap-based graph algorithm logic and output.",
         ),
     }
     required = checks.get(topic)
