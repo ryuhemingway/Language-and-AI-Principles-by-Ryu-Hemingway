@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this project, please cite it as below."
+title: "Language and AI Principles by Ryu Hemingway"
+authors:
+  - family-names: "Hemingway"
+    given-names: "Ryu"
+repository-code: "https://github.com/ryuhemingway/Language-and-AI-Principles-by-Ryu-Hemingway"
+license: "MIT"
+date-released: "2026-06-16"
