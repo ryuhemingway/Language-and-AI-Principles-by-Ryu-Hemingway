@@ -27,10 +27,15 @@ prerequisites such as:
 When prerequisites are complete, problems appear in `Learn leetcode next` and
 inside the interactive tutor.
 
-## Local Problems
+## Problem Sources
 
-The catalog includes 80 imported local Python problem files and 120 curated
-LeetCode URL entries.
+The catalog currently ships as 200 curated LeetCode URL entries. A problem is
+shown as local only when its catalog entry includes a readable local prompt or
+starter file path for the selected language.
+
+Use `Learn leetcode show <id-or-number>` to view the catalog metadata and URL.
+If a future entry includes a local prompt file, the same command prints that
+prompt directly.
 
 The catalog lives at:
 
@@ -44,3 +49,8 @@ Progress lives at:
 data/leetcode_progress.json
 ```
 
+Reset saved practice state with:
+
+```bash
+Learn reset-progress --leetcode-only
+```

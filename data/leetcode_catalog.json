@@ -50,15 +50,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/two-sum/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -77,15 +76,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/palindrome-number/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -104,15 +102,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/roman-to-integer/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -131,15 +128,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/longest-common-prefix/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -156,15 +152,14 @@
         "stack"
       ],
       "url": "https://leetcode.com/problems/valid-parentheses/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -181,15 +176,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/merge-two-sorted-lists/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -208,15 +202,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/remove-duplicates-from-sorted-array/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -235,15 +228,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/remove-element/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -262,15 +254,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -288,15 +279,14 @@
         "binary_search"
       ],
       "url": "https://leetcode.com/problems/search-insert-position/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -315,15 +305,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/length-of-last-word/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -342,15 +331,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/plus-one/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -369,15 +357,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/add-binary/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -395,15 +382,14 @@
         "binary_search"
       ],
       "url": "https://leetcode.com/problems/sqrtx/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -420,15 +406,14 @@
         "dynamic_programming"
       ],
       "url": "https://leetcode.com/problems/climbing-stairs/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -445,15 +430,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/remove-duplicates-from-sorted-list/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -472,15 +456,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/merge-sorted-array/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -497,15 +480,14 @@
         "trees"
       ],
       "url": "https://leetcode.com/problems/same-tree/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -522,15 +504,14 @@
         "trees"
       ],
       "url": "https://leetcode.com/problems/symmetric-tree/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -547,15 +528,14 @@
         "trees"
       ],
       "url": "https://leetcode.com/problems/maximum-depth-of-binary-tree/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -574,15 +554,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/pascal-s-triangle/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -599,15 +578,14 @@
         "dynamic_programming"
       ],
       "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -625,15 +603,14 @@
         "two_pointers"
       ],
       "url": "https://leetcode.com/problems/valid-palindrome/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -649,15 +626,14 @@
         "bit_manipulation"
       ],
       "url": "https://leetcode.com/problems/single-number/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -674,15 +650,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/linked-list-cycle/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -699,15 +674,14 @@
         "stack"
       ],
       "url": "https://leetcode.com/problems/min-stack/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -724,15 +698,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/intersection-of-two-linked-lists/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -751,15 +724,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/majority-element/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -778,15 +750,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/excel-sheet-column-number/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -803,15 +774,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/reverse-linked-list/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -830,15 +800,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/happy-number/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -855,15 +824,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/remove-linked-list-elements/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -882,15 +850,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/isomorphic-strings/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -909,15 +876,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/contains-duplicate/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -936,15 +902,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/contains-duplicate-ii/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -961,15 +926,14 @@
         "stack"
       ],
       "url": "https://leetcode.com/problems/implement-stack-using-queues/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -986,15 +950,14 @@
         "trees"
       ],
       "url": "https://leetcode.com/problems/invert-binary-tree/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1011,15 +974,14 @@
         "stack"
       ],
       "url": "https://leetcode.com/problems/implement-queue-using-stacks/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1036,15 +998,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/palindrome-linked-list/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1060,15 +1021,14 @@
         "bit_manipulation"
       ],
       "url": "https://leetcode.com/problems/power-of-two/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1087,15 +1047,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/valid-anagram/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1114,15 +1073,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/missing-number/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1141,15 +1099,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/move-zeroes/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1167,15 +1124,14 @@
         "two_pointers"
       ],
       "url": "https://leetcode.com/problems/reverse-string/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1194,15 +1150,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/first-unique-character-in-a-string/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1221,15 +1176,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/fizz-buzz/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1248,15 +1202,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/intersection-of-two-arrays-ii/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1275,15 +1228,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/ransom-note/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1301,15 +1253,14 @@
         "two_pointers"
       ],
       "url": "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1325,15 +1276,14 @@
         "design"
       ],
       "url": "https://leetcode.com/problems/range-sum-query-immutable/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1350,15 +1300,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/add-two-numbers/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1376,15 +1325,14 @@
         "sliding_window"
       ],
       "url": "https://leetcode.com/problems/longest-substring-without-repeating-characters/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1403,15 +1351,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/longest-palindromic-substring/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1429,15 +1376,14 @@
         "two_pointers"
       ],
       "url": "https://leetcode.com/problems/container-with-most-water/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1455,15 +1401,14 @@
         "two_pointers"
       ],
       "url": "https://leetcode.com/problems/3sum/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1480,15 +1425,14 @@
         "backtracking"
       ],
       "url": "https://leetcode.com/problems/letter-combinations-of-a-phone-number/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1505,15 +1449,14 @@
         "linked_lists"
       ],
       "url": "https://leetcode.com/problems/remove-nth-node-from-end-of-list/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1530,15 +1473,14 @@
         "backtracking"
       ],
       "url": "https://leetcode.com/problems/generate-parentheses/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1556,15 +1498,14 @@
         "binary_search"
       ],
       "url": "https://leetcode.com/problems/search-in-rotated-sorted-array/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1582,15 +1523,14 @@
         "binary_search"
       ],
       "url": "https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1607,15 +1547,14 @@
         "backtracking"
       ],
       "url": "https://leetcode.com/problems/combination-sum/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1634,15 +1573,14 @@
         "arrays"
       ],
       "url": "https://leetcode.com/problems/group-anagrams/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1659,15 +1597,14 @@
         "dynamic_programming"
       ],
       "url": "https://leetcode.com/problems/maximum-subarray/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1683,15 +1620,14 @@
         "matrix"
       ],
       "url": "https://leetcode.com/problems/spiral-matrix/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1707,15 +1643,14 @@
         "greedy"
       ],
       "url": "https://leetcode.com/problems/jump-game/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1731,15 +1666,14 @@
         "intervals"
       ],
       "url": "https://leetcode.com/problems/merge-intervals/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1756,15 +1690,14 @@
         "dynamic_programming"
       ],
       "url": "https://leetcode.com/problems/unique-paths/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1780,15 +1713,14 @@
         "matrix"
       ],
       "url": "https://leetcode.com/problems/set-matrix-zeroes/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1806,15 +1738,14 @@
         "two_pointers"
       ],
       "url": "https://leetcode.com/problems/sort-colors/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1831,15 +1762,14 @@
         "backtracking"
       ],
       "url": "https://leetcode.com/problems/subsets/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1856,15 +1786,14 @@
         "backtracking"
       ],
       "url": "https://leetcode.com/problems/word-search/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1881,15 +1810,14 @@
         "trees"
       ],
       "url": "https://leetcode.com/problems/validate-binary-search-tree/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1906,15 +1834,14 @@
         "trees"
       ],
       "url": "https://leetcode.com/problems/binary-tree-level-order-traversal/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1930,15 +1857,14 @@
         "greedy"
       ],
       "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock-ii/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1955,15 +1881,14 @@
         "dynamic_programming"
       ],
       "url": "https://leetcode.com/problems/word-break/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -1979,15 +1904,14 @@
         "design"
       ],
       "url": "https://leetcode.com/problems/lru-cache/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -2004,15 +1928,14 @@
         "dynamic_programming"
       ],
       "url": "https://leetcode.com/problems/house-robber/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -2028,15 +1951,14 @@
         "graphs"
       ],
       "url": "https://leetcode.com/problems/number-of-islands/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -2052,15 +1974,14 @@
         "graphs"
       ],
       "url": "https://leetcode.com/problems/course-schedule/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {
@@ -2076,15 +1997,14 @@
         "heap"
       ],
       "url": "https://leetcode.com/problems/kth-largest-element-in-an-array/",
-      "source": "local",
-      "available_languages": [
-        "python"
-      ],
+      "source": "curated",
+      "available_languages": [],
       "missing_solution_languages": [
+        "python",
         "c",
         "java"
       ],
-      "has_prompt": true,
+      "has_prompt": false,
       "has_local_tests": false
     },
     {

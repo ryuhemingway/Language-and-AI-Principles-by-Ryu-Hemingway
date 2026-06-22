@@ -1,0 +1,7 @@
+data/learning_progress.json export-ignore
+data/leetcode_progress.json export-ignore
+output/ export-ignore
+config.json export-ignore
+profile.md export-ignore
+deadlines.json export-ignore
+skills.json export-ignore

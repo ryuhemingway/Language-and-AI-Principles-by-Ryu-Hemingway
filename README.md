@@ -41,6 +41,12 @@ To install the optional `Learn` launcher after trying the app:
 bash scripts/install.sh
 ```
 
+For an editable Python package install:
+
+```bash
+python3 -m pip install -e .
+```
+
 ## Demo Path
 
 Run the built-in demo without touching your real progress:
@@ -149,6 +155,15 @@ export DEEPSEEK_API_KEY="..."
 ```
 
 Do not commit `config.json`, `profile.md`, generated output, or saved progress.
+Release zips should also omit those local files. Use `git archive` or remove
+`data/learning_progress.json`, `data/leetcode_progress.json`, `output/`, and
+private config/profile files before sharing a manual archive.
+
+To reset local learner state:
+
+```bash
+python3 learn.py reset-progress
+```
 
 ## Project Layout
 

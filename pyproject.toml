@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learn-cli"
+version = "0.1.0"
+description = "Terminal tutor for programming fundamentals, AI principles, and LeetCode practice."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Ryu Hemingway" }]
+dependencies = [
+  "requests>=2.31",
+  "ddgs>=9.0",
+  "prompt-toolkit>=3.0",
+  "pygments>=2.0",
+]
+
+[project.scripts]
+Learn = "learn:main"
+learn = "learn:main"
+
+[tool.setuptools]
+py-modules = ["learn"]

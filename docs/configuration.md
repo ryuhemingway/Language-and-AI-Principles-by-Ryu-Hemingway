@@ -70,7 +70,18 @@ data/learning_progress.json
 data/leetcode_progress.json
 ```
 
-Delete those files only if you want to reset progress.
+Reset those files with the CLI when you want a fresh learner state:
+
+```bash
+Learn reset-progress
+Learn reset-progress --learning-only
+Learn reset-progress --leetcode-only
+```
 
 The app also stores `onboarding_complete` so first launch can show setup once
 and later launches can resume the active lesson directly.
+
+Release archives should not include local progress, credentials, generated
+reports, or personal profile files. `.gitattributes` excludes those paths from
+`git archive`; for manually-created zip files, remove the same local files
+listed above before sharing.

@@ -1,4 +1,7 @@
+import contextlib
+import io
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -17,6 +20,69 @@ class CurriculumIntegrityTests(unittest.TestCase):
 
         self.assertTrue(learn._answer_matches(">>>", [">>>", "unsigned right shift"]))
         self.assertFalse(learn._answer_matches("???", [">>>", "unsigned right shift"]))
+
+    def test_beginner_answer_matching_accepts_common_synonyms(self):
+        self.assertTrue(learn._answer_matches("save data", ["store a value"]))
+        self.assertTrue(learn._answer_matches("hold information", ["store a value"]))
+        self.assertTrue(learn._answer_matches("keep a value", ["remember a value"]))
+        self.assertTrue(learn._answer_matches("repeat code", ["duplicate code", "repeated code", "repetition"]))
+        self.assertFalse(learn._answer_matches("save money", ["store a value"]))
+
+    def test_leetcode_catalog_does_not_claim_missing_local_prompts(self):
+        catalog = learn.load_leetcode_catalog()
+        for problem in catalog.get("problems", []):
+            claims_local = (
+                problem.get("source") == "local"
+                or bool(problem.get("has_prompt"))
+                or bool(problem.get("available_languages"))
+            )
+            if not claims_local:
+                continue
+            readable_languages = [
+                language for language in catalog.get("languages", [])
+                if learn._leetcode_has_local_prompt(problem, language)
+            ]
+            with self.subTest(problem=problem.get("id")):
+                self.assertTrue(readable_languages)
+
+    def test_leetcode_stats_reports_readable_local_prompts_only(self):
+        parser = learn.build_parser()
+        args = parser.parse_args(["leetcode", "stats", "--language", "python"])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            learn.handle_leetcode(args)
+
+        text = out.getvalue()
+        self.assertIn("Local python prompts/stubs: 0", text)
+        self.assertNotIn("solutions/stubs: 80", text)
+
+    def test_reset_progress_removes_selected_progress_files(self):
+        old_learning = learn.LEARNING_PROGRESS_PATH
+        old_leetcode = learn.LEETCODE_PROGRESS_PATH
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            learning = tmp_path / "learning_progress.json"
+            leetcode = tmp_path / "leetcode_progress.json"
+            learning.write_text("{}", encoding="utf-8")
+            leetcode.write_text("{}", encoding="utf-8")
+            try:
+                learn.LEARNING_PROGRESS_PATH = learning
+                learn.LEETCODE_PROGRESS_PATH = leetcode
+                removed = learn.reset_progress(learning=True, leetcode=False)
+            finally:
+                learn.LEARNING_PROGRESS_PATH = old_learning
+                learn.LEETCODE_PROGRESS_PATH = old_leetcode
+
+            self.assertEqual(removed, [learning])
+            self.assertFalse(learning.exists())
+            self.assertTrue(leetcode.exists())
+
+    def test_release_archive_excludes_runtime_state(self):
+        attrs = Path(".gitattributes").read_text(encoding="utf-8")
+
+        self.assertIn("data/learning_progress.json export-ignore", attrs)
+        self.assertIn("data/leetcode_progress.json export-ignore", attrs)
+        self.assertIn("output/ export-ignore", attrs)
 
     def test_ai_quiz_questions_are_unique_after_normalization(self):
         seen = {}

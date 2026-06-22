@@ -5022,14 +5022,14 @@ def _leetcode_status(problem: dict, language: str, progress: dict) -> str:
     completed = set(progress.get("completed_problems", {}).get(language, []))
     if problem.get("id") in completed:
         return "done"
-    if language in problem.get("available_languages", []):
+    if _leetcode_has_local_prompt(problem, language):
         return "local"
     return "catalog"
 
 
 def _format_problem_line(problem: dict, language: str, progress: dict) -> str:
     topics = ", ".join(problem.get("topics", [])[:2])
-    local = "local" if language in problem.get("available_languages", []) else "url"
+    local = "local" if _leetcode_has_local_prompt(problem, language) else "url"
     status = _leetcode_status(problem, language, progress)
     number = problem.get("leetcode_number") or "--"
     return (
@@ -5052,17 +5052,35 @@ def _leetcode_filtered(args, catalog: dict, progress: dict) -> list[dict]:
     if args.unlocked:
         problems = [p for p in problems if _leetcode_is_unlocked(p, completed_topics)]
     if args.local_only:
-        problems = [p for p in problems if language in p.get("available_languages", [])]
+        problems = [p for p in problems if _leetcode_has_local_prompt(p, language)]
     if not args.include_done:
         problems = [p for p in problems if p.get("id") not in completed_problems]
 
     return sorted(problems, key=_problem_key)
 
 
+def _local_problem_path(problem: dict, language: str) -> str:
+    local_paths = problem.get("local_paths")
+    if isinstance(local_paths, dict) and local_paths.get(language):
+        return str(local_paths[language])
+    if problem.get("local_path") and (
+        not problem.get("available_languages") or language in problem.get("available_languages", [])
+    ):
+        return str(problem["local_path"])
+    return ""
+
+
+def _resolve_local_problem_path(path: str) -> Path:
+    p = Path(path).expanduser()
+    if not p.is_absolute():
+        p = BASE / p
+    return p
+
+
 def _read_local_problem(path: str) -> str:
     if not path:
         return ""
-    p = Path(path)
+    p = _resolve_local_problem_path(path)
     if not p.exists():
         return ""
     return p.read_text(encoding="utf-8")
@@ -5075,6 +5093,56 @@ def _extract_local_prompt(source: str) -> str:
     return ""
 
 
+def _leetcode_has_local_prompt(problem: dict, language: str) -> bool:
+    path = _local_problem_path(problem, language)
+    if not path:
+        return False
+    return bool(_extract_local_prompt(_read_local_problem(path)))
+
+
+def reset_progress(*, learning: bool = True, leetcode: bool = True) -> list[Path]:
+    removed = []
+    for enabled, path in (
+        (learning, LEARNING_PROGRESS_PATH),
+        (leetcode, LEETCODE_PROGRESS_PATH),
+    ):
+        if enabled and path.exists():
+            path.unlink()
+            removed.append(path)
+    return removed
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(BASE))
+    except ValueError:
+        return str(path)
+
+
+def handle_reset_progress(args) -> None:
+    learning = not args.leetcode_only
+    leetcode = not args.learning_only
+    if not learning and not leetcode:
+        print("  Nothing selected to reset.")
+        return
+    targets = []
+    if learning:
+        targets.append(_display_path(LEARNING_PROGRESS_PATH))
+    if leetcode:
+        targets.append(_display_path(LEETCODE_PROGRESS_PATH))
+    if not args.yes:
+        answer = input(f"Reset {', '.join(targets)}? Type reset to continue: ").strip().lower()
+        if answer != "reset":
+            print("  Reset cancelled.")
+            return
+    removed = reset_progress(learning=learning, leetcode=leetcode)
+    if removed:
+        for path in removed:
+            print(f"  Removed {_display_path(path)}")
+    else:
+        print("  No progress files found.")
+
+
 def handle_leetcode(args) -> None:
     catalog = load_leetcode_catalog()
     progress = load_leetcode_progress()
@@ -5084,10 +5152,10 @@ def handle_leetcode(args) -> None:
         problems = catalog.get("problems", [])
         done = set(progress.get("completed_problems", {}).get(language, []))
         completed_topics = progress.get("completed_topics", {}).get(language, [])
-        local = sum(1 for p in problems if language in p.get("available_languages", []))
+        local = sum(1 for p in problems if _leetcode_has_local_prompt(p, language))
         print(f"  LeetCode catalog: {len(problems)} problems")
         print(f"  Language: {language}")
-        print(f"  Local {language} solutions/stubs: {local}")
+        print(f"  Local {language} prompts/stubs: {local}")
         print(f"  Completed problems: {len(done)}")
         print(f"  Completed topics: {', '.join(completed_topics) if completed_topics else '-'}")
         return
@@ -5134,8 +5202,9 @@ def handle_leetcode(args) -> None:
         print("  Next problem:")
         print("  " + _format_problem_line(problem, language, progress))
         print(f"  {problem.get('url')}")
-        if problem.get("local_path") and language in problem.get("available_languages", []):
-            print(f"  Local file: {problem['local_path']}")
+        local_path = _local_problem_path(problem, language)
+        if _leetcode_has_local_prompt(problem, language):
+            print(f"  Local file: {local_path}")
         return
 
     if args.leetcode_cmd == "show":
@@ -5147,9 +5216,10 @@ def handle_leetcode(args) -> None:
         print(f"  URL: {problem.get('url')}")
         print(f"  Topics: {', '.join(problem.get('topics', []))}")
         print(f"  Required topics: {', '.join(problem.get('prerequisite_topics', [])) or '-'}")
-        if problem.get("local_path"):
-            print(f"  Local file: {problem['local_path']}")
-            prompt = _extract_local_prompt(_read_local_problem(problem["local_path"]))
+        local_path = _local_problem_path(problem, language)
+        if _leetcode_has_local_prompt(problem, language):
+            print(f"  Local file: {local_path}")
+            prompt = _extract_local_prompt(_read_local_problem(local_path))
             if prompt:
                 print("\n" + prompt)
         elif args.open:
@@ -5279,6 +5349,18 @@ def _normalise_answer(value: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+ANSWER_CONCEPT_GROUPS = (
+    (("store", "save", "hold", "remember", "keep"), ("value", "values", "data", "information")),
+    (("repeat", "repeats", "repeating", "repeated", "duplicate", "duplicated", "rerun", "reuse"), ("code", "statement", "statements", "instructions", "block", "work")),
+)
+
+
+def _has_answer_concept_pair(text: str, group: tuple[tuple[str, ...], tuple[str, ...]]) -> bool:
+    first, second = group
+    words = set(text.split())
+    return bool(words.intersection(first) and words.intersection(second))
+
+
 def _answer_matches(answer: str, accepted: list[str]) -> bool:
     got = _normalise_answer(answer)
     if not got:
@@ -5294,6 +5376,9 @@ def _answer_matches(answer: str, accepted: list[str]) -> bool:
             if expected in got.split():
                 return True
             continue
+        for group in ANSWER_CONCEPT_GROUPS:
+            if _has_answer_concept_pair(expected, group) and _has_answer_concept_pair(got, group):
+                return True
         if expected in got:
             return True
     return False
@@ -7364,11 +7449,12 @@ def _practice_leetcode_interactive(language: str) -> None:
         return
     ui_blank()
     problem_lines = [problem.get("url", "")]
-    if problem.get("local_path"):
-        prompt = _extract_local_prompt(_read_local_problem(problem["local_path"]))
+    local_path = _local_problem_path(problem, language)
+    if local_path:
+        prompt = _extract_local_prompt(_read_local_problem(local_path))
         if prompt:
             problem_lines += [""] + prompt.splitlines()
-        problem_lines += ["", f"Local file: {problem['local_path']}"]
+        problem_lines += ["", f"Local file: {local_path}"]
     ui_box(problem_lines, title=f"{problem['id']} - {problem['title']}", color=ANSI.cyan)
     ui_line("Mark complete for this language? [y/N]", color=ANSI.amber)
     done = ui_prompt()
@@ -8491,7 +8577,12 @@ def build_parser():
                        help="AI helper mode for tutor explanations")
     learn.add_argument("--theme", choices=["light", "dark"], help="Color theme for terminal legibility")
 
-    lc = sub.add_parser("leetcode", help="Practice from the local 200-problem LeetCode catalog")
+    reset = sub.add_parser("reset-progress", help="Remove saved learning and LeetCode progress")
+    reset.add_argument("--learning-only", action="store_true", help="Only remove learning_progress.json")
+    reset.add_argument("--leetcode-only", action="store_true", help="Only remove leetcode_progress.json")
+    reset.add_argument("-y", "--yes", action="store_true", help="Do not prompt before resetting")
+
+    lc = sub.add_parser("leetcode", help="Practice from the 200-problem LeetCode catalog")
     lc_sub = lc.add_subparsers(dest="leetcode_cmd", required=True)
 
     lc_stats = lc_sub.add_parser("stats", help="Show LeetCode catalog/progress stats")
@@ -8535,7 +8626,7 @@ def build_parser():
 def main():
     invoked_as = Path(sys.argv[0]).name.lower()
     tutor_flags = {"--track", "-l", "--language", "--module", "--ai", "--theme", "--list-models", "-h", "--help"}
-    full_cli_commands = {"learn", "leetcode"}
+    full_cli_commands = {"learn", "leetcode", "reset-progress"}
     if invoked_as in {"learn", "learn.py"} and (
         len(sys.argv) == 1
         or sys.argv[1] in tutor_flags
@@ -8575,6 +8666,9 @@ def main():
         return
     if args.command == "learn":
         handle_learn(args)
+        return
+    if args.command == "reset-progress":
+        handle_reset_progress(args)
         return
     if args.command == "leetcode":
         handle_leetcode(args)
