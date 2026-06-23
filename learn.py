@@ -7106,50 +7106,13 @@ def _review_code_submission(view: dict, code: str, progress: dict, cfg: dict) ->
 
 def _coding_practice(view: dict, progress: dict, cfg: dict, has_prev: bool = False) -> str:
     provider = progress.get("ai_provider", "offline")
-    open_with_hint = False
-    while True:
-        ui_blank()
-        ui_box([view["build"]], title="Stage 3 · Coding problem", color=ANSI.cyan)
-        hint_lines = _code_hint_lines(view)
-        hint_note = "  ·  [h] write with hint" if hint_lines else ""
-        help_text = f"Enter: write{hint_note}  ·  [a] tutor  ·  [b] back"
-        if has_prev:
-            help_text += "  ·  [p] previous"
-        ui_line(help_text, color=ANSI.dim)
-        action = _read_line("> ").strip().lower()
-        if action in ("h", "hint") and hint_lines:
-            open_with_hint = True
-            break
-        if action in ("a", "ask"):
-            _tutor_chat(
-                provider,
-                view["subject"],
-                cfg,
-                progress,
-                context=(
-                    f"Lesson: {view['context']}\n"
-                    f"Concept question: {view['quiz']}\n"
-                    f"Coding problem: {view['build']}"
-                ),
-                resume_label="resume the coding problem",
-            )
-            continue
-        if action in ("b", "back"):
-            return "back"
-        if action in ("p", "prev", "previous"):
-            if has_prev:
-                return "prev"
-            ui_line("This is the first lesson.", color=ANSI.amber)
-            continue
-        if action:
-            ui_line("Press Enter to open the editor, type [h] to open with hints, or type [a] to ask the tutor.", color=ANSI.amber)
-            continue
-        break
+    ui_blank()
+    ui_box([view["build"]], title="Stage 3 · Coding problem", color=ANSI.cyan)
+    hint_lines = _code_hint_lines(view)
 
     code = _read_code_block(
         view.get("language"),
-        hint_lines=hint_lines if not open_with_hint else [],
-        initial_text="\n".join(hint_lines[:3]) + ("\n" if hint_lines else "") if open_with_hint else "",
+        hint_lines=hint_lines,
         tutor_provider=provider,
         tutor_subject=view["subject"],
         tutor_cfg=cfg,

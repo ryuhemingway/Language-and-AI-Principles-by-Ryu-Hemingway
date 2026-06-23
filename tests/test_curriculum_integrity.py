@@ -292,6 +292,9 @@ class CurriculumIntegrityTests(unittest.TestCase):
         self.assertIn("Type :hint on the first line", source)
         self.assertNotIn("Type h on the first line", source)
         self.assertNotIn('stripped.lower() in ("h", "hint", ":hint")', source)
+        self.assertNotIn("Enter: write", source)
+        self.assertNotIn("write with hint", source)
+        self.assertNotIn("Press Enter to open the editor", source)
 
 
 if __name__ == "__main__":
